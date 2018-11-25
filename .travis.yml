@@ -1,0 +1,70 @@
+language: bash
+sudo: false
+addons:
+  apt:
+    packages:
+      - git-svn
+
+branches:
+  only:
+    - travis
+
+notifications:
+  email: false
+
+before_install: |
+  export SVN_INITIAL_CHECKOUT="false";
+  if [[ ! -d "$TRAVIS_BUILD_DIR/src/fhem-mirror/.git" ]]; then
+    export SVN_INITIAL_CHECKOUT="true";
+    git init "$TRAVIS_BUILD_DIR/src/fhem-mirror" ;
+    cd "$TRAVIS_BUILD_DIR/src/fhem-mirror";
+    git svn init --trunk=trunk --prefix=svn/ https://svn.fhem.de/fhem ;
+    git config --add svn-remote.svn.preserve-empty-dirs "true" ;
+    git config --add svn-remote.svn.placeholder-filename ".gitkeep"
+    git config --add svn.authorsfile "$TRAVIS_BUILD_DIR/authors.txt" ;
+  fi
+
+install: |
+  cd "$TRAVIS_BUILD_DIR/src/fhem-mirror";
+  export SVN_FETCH_STATUS="incomplete";
+  svn log -q https://svn.fhem.de/fhem --xml --quiet | grep author | sort -u | perl -pe 's/.*>(.*?)<.*/$1 = $1 <>/' > $TRAVIS_BUILD_DIR/authors_svn.txt ;
+  cat $TRAVIS_BUILD_DIR/authors.txt $TRAVIS_BUILD_DIR/authors_svn.txt | sort -u > $TRAVIS_BUILD_DIR/authors.tmp
+  mv -f $TRAVIS_BUILD_DIR/authors.tmp $TRAVIS_BUILD_DIR/authors.txt
+  timeout 2790 git svn -q fetch;
+  if [[ $? == 0 ]]; then
+    export SVN_FETCH_STATUS="complete";
+  fi
+
+script: |
+  if [[ "$SVN_FETCH_STATUS" != "complete" ]]; then
+    if [[ -n "$TRAVIS_API_TOKEN" ]]; then
+      body='{"request":{"branch":"travis","message":"Extend build runtime"}}';
+      curl -s -X POST \
+         -H "Content-Type: application/json" -H "Accept: application/json" -H "Travis-API-Version: 3" -H "Authorization: token $TRAVIS_API_TOKEN" -d "$body" https://api.travis-ci.com/repo/fhem%2Ffhem-mirror/requests ;
+    else
+      echo "TRAVIS_API_TOKEN missing - unable to automatically trigger next build run"
+    fi
+  else
+    cd "$TRAVIS_BUILD_DIR/src/fhem-mirror";
+    git gc ;
+  fi
+
+cache:
+  directories:
+    - $TRAVIS_BUILD_DIR/src/fhem-mirror/
+
+after_success: |
+  if [[ "$SVN_FETCH_STATUS" != "complete" ]]; then
+    echo "Maximum runtime reached - will continue next run!";
+  elif [[ -n "$GITHUB_API_KEY" ]]; then
+    cd "$TRAVIS_BUILD_DIR/src/fhem-mirror";
+    echo "Will now push the following directory structure to remote repo:";
+    ls -la ;
+    git remote add origin https://jpawlowski:$GITHUB_API_KEY@github.com/fhem/fhem-mirror.git ;
+    git config --add remote.origin.push 'refs/remotes/svn/trunk:refs/heads/master' ;
+    git push -f origin master ;
+    git remote remove origin ;
+  else
+    echo "GITHUB_API_KEY missing - unable to push updated repository";
+    exit 1;
+  fi

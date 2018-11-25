@@ -1,0 +1,3 @@
+(no author) = unknown <>
+root = unknown <>
+loredo = jpawlowski <julian.pawlowski@gmail.com>
