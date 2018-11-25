@@ -34,7 +34,7 @@ install: |
   RET=$? ;
   if [[ $RET == 0 ]]; then
     export SVN_FETCH_STATUS="complete";
-  else [[ $RET != 124 ]]; then
+  elif [[ $RET != 124 ]]; then
     export SVN_FETCH_STATUS="error";
   fi
 
