@@ -46,7 +46,7 @@ script: |
     fi
   else
     cd "$TRAVIS_BUILD_DIR/src/fhem-mirror";
-    git gc ;
+    git gc --force ;
   fi
 
 cache:
