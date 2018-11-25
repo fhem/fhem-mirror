@@ -31,12 +31,18 @@ install: |
   cat $TRAVIS_BUILD_DIR/authors.txt $TRAVIS_BUILD_DIR/authors_svn.txt | sort -u > $TRAVIS_BUILD_DIR/authors.tmp
   mv -f $TRAVIS_BUILD_DIR/authors.tmp $TRAVIS_BUILD_DIR/authors.txt
   timeout 2790 git svn -q fetch;
-  if [[ $? == 0 ]]; then
+  RET=$? ;
+  if [[ $RET == 0 ]]; then
     export SVN_FETCH_STATUS="complete";
+  else [[ $RET != 124 ]]; then
+    export SVN_FETCH_STATUS="error";
   fi
 
 script: |
-  if [[ "$SVN_FETCH_STATUS" != "complete" ]]; then
+  if [[ "$SVN_FETCH_STATUS" == "error" ]]; then
+    echo "A permanent error occured"
+    exit 1
+  elif [[ "$SVN_FETCH_STATUS" != "complete" ]]; then
     if [[ -n "$TRAVIS_API_TOKEN" ]]; then
       body='{"request":{"branch":"travis","message":"Extend build runtime"}}';
       curl -s -X POST \
@@ -46,6 +52,7 @@ script: |
     fi
   else
     cd "$TRAVIS_BUILD_DIR/src/fhem-mirror";
+    git fsck --strict --no-dangling ;
     git gc --force ;
   fi
 
