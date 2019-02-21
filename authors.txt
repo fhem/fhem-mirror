@@ -11,3 +11,4 @@ DeeSPe = deespe <DeeSPe@users.noreply.github.com>
 igami = igami <igami@users.noreply.github.com>
 KernSani = KernSani <KernSani@users.noreply.github.com>
 hexenmeister = hexenmeister <hexenmeister@users.noreply.github.com>
+eisler = eisler <eisler@users.noreply.github.com>
