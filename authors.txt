@@ -8,3 +8,4 @@ neubert = borisneubert <borisneubert@users.noreply.github.com>
 Sidey = sidey79 <sidey79@users.noreply.github.com>
 yoda_gh = gernot-h <gernot-h@users.noreply.github.com>
 DeeSPe = deespe <DeeSPe@users.noreply.github.com>
+igami = igami <igami@users.noreply.github.com>
