@@ -1,5 +1,6 @@
 (no author) = unknown <>
 root = unknown <>
+fhemupdate = svc8083 <svc8083@users.noreply.github.com>
 loredo = jpawlowski <jpawlowski@users.noreply.github.com>
 justme1968 = justme-1968 <justme-1968@users.noreply.github.com>
 CoolTux = LeonGaultier <LeonGaultier@users.noreply.github.com>
