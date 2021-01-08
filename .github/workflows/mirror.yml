@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
   schedule:
-  - cron: '21 * * * *' # every hour to keep cache up to date
+  - cron: '21 */2 * * *' # every hour to keep cache up to date
 
 jobs:
   # This workflow contains a single job called "build"
@@ -56,6 +56,7 @@ jobs:
 
 
       - name: init mirror repository if it is not already a mirror
+        timeout-minutes: 1800
         run: |
           if [[ ! -d "${GITHUB_WORKSPACE}/src/fhem-mirror/.git" ]]; then
             git init "${GITHUB_WORKSPACE}/src/fhem-mirror" ;
@@ -64,6 +65,8 @@ jobs:
             git config --add svn-remote.svn.preserve-empty-dirs "true" ;
             git config --add svn-remote.svn.placeholder-filename ".gitkeep" ;
             git config --add svn.authorsfile "${GITHUB_WORKSPACE}/authors_merged.txt" ;
+            # Run extra fetches after init, go pick up some base refs for the cache on first run only!
+            timeout 300 git svn -q fetch || timeout 300 git svn -q fetch
           else
             echo "Current .git/config file content:";
             cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
@@ -87,7 +90,7 @@ jobs:
           echo "::set-output name=SVN_FETCH_STATUS::incomplete"
           cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
           RET=0
-          timeout 630 git svn -q fetch || RET=$?;
+          timeout 1200 git svn -q fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
           if [[ $RET == 0 ]]; then
             git checkout -f "master"
             git rebase "remotes/svn/trunk"
@@ -101,6 +104,12 @@ jobs:
         run: |
           echo "A permanent error occured"
           exit 1
+
+      - name: Recreate tags from svn
+        run: |
+          for tag in `git branch -r | grep "tags/" | sed 's/ tags\///'`; do
+            git tag -a -m"Converting SVN tags" $tag refs/remotes/$tag
+          done
 
       # - name: Commit fetched files
       #   run: |
@@ -117,3 +126,4 @@ jobs:
           branch: master
           directory: ./src/fhem-mirror
           force: true
+          tags: true
