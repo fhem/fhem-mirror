@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
   schedule:
-  - cron: '21 */2 * * *' # every hour to keep cache up to date
+  - cron: '21 */2 * * *' # every second hour to keep cache up to date
 
 jobs:
   # This workflow contains a single job called "build"
@@ -34,10 +34,6 @@ jobs:
           echo "::set-output name=seconds::$(/bin/date -u "+%s")"
         shell: bash
 
-      # - name: Get latest svn revision from remote server
-      #   id: svnRemote
-      #   run: echo "::set-output name=LAST_SVN_REVISION::$( svn info --show-item revision https://svn.fhem.de/fhem/trunk )"
-
       - name: generate merged authors file
         run: |
           cd /tmp
@@ -46,6 +42,7 @@ jobs:
           ls -la ${GITHUB_WORKSPACE}/authors_merged.txt;
 
       - name: Cache runners svn-2-git-fhem mirror directory  
+        # Some room for improvement because we create a new cache on every run where a new ref is fetched, this isn't very nice, normaly weneed only the last one and it takes 7 days until they are deleted
         id: cache-fhem
         uses: actions/cache@v2
         with:
@@ -72,17 +69,6 @@ jobs:
             cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
           fi
 
-
-      # - name: Update or checkout fhem from svn
-      #   if: steps.cache-fhem.outputs.cache-hit != 'true'
-      #   run: svn update ./src/fhem/trunk/  || svn co https://svn.fhem.de/fhem/trunk ./src/fhem/trunk;
-
-      # - name: get svn vars
-      #   id: svnVars
-      #   run: |
-      #     echo "::set-output name=FHEM_REVISION_LATEST::$( cd ./src/fhem/trunk; svn info --show-item last-changed-revision)"
-      #     echo "::set-output name=FHEM_VERSION::$( cd ./src/fhem/trunk; svn ls "^/tags" https://svn.fhem.de/fhem/ | grep "FHEM_" | sort | tail -n 1 | cut -d / -f 1 | cut -d " " -f 1 |cut -d _ -f 2- | sed s/_/./g )"
-
       - name: fetch svn to git master branch
         id: fetchsvn
         timeout-minutes: 1800
@@ -105,11 +91,11 @@ jobs:
           echo "A permanent error occured"
           exit 1
 
-      - name: Recreate tags from svn
-        run: |
-          for tag in `git branch -r | grep "tags/" | sed 's/ tags\///'`; do
-            git tag -a -m"Converting SVN tags" $tag refs/remotes/$tag
-          done
+      # - name: Recreate tags from svn
+      #   run: |
+      #     for tag in `git branch -r | grep "tags/" | sed 's/ tags\///'`; do
+      #       git tag -a -m"Converting SVN tags" $tag refs/remotes/$tag
+      #     done
 
       # - name: Commit fetched files
       #   run: |
