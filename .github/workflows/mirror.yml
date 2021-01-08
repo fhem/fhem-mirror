@@ -1,0 +1,119 @@
+name: Mirror from SVN
+
+on:
+  push:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+  schedule:
+  - cron: '21 * * * *' # every hour to keep cache up to date
+
+jobs:
+  # This workflow contains a single job called "build"
+  mirror:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    env:
+      TRAVIS_REPO_SLUG: ${{ github.repository }} 
+    steps:
+
+      - name: install git-svn package
+        run: |
+          sudo apt-get update
+          sudo apt-get install git-svn --no-install-recommends
+
+      - name: checkout mirror config branch
+        uses: actions/checkout@master
+
+      - name: Get current date as seconds
+        id: get-date
+        run: |
+          echo "::set-output name=seconds::$(/bin/date -u "+%s")"
+        shell: bash
+
+      # - name: Get latest svn revision from remote server
+      #   id: svnRemote
+      #   run: echo "::set-output name=LAST_SVN_REVISION::$( svn info --show-item revision https://svn.fhem.de/fhem/trunk )"
+
+      - name: generate merged authors file
+        run: |
+          cd /tmp
+          svn log https://svn.fhem.de/fhem --xml --quiet | grep author | sort -u | perl -pe 's/.*>(.*?)<.*/$1 = $1 <>/' > ${GITHUB_WORKSPACE}/authors_svn.txt;
+          cat ${GITHUB_WORKSPACE}/authors.txt ${GITHUB_WORKSPACE}/authors_svn.txt | sort -u -k1,1 > ${GITHUB_WORKSPACE}/authors_merged.txt;
+          ls -la ${GITHUB_WORKSPACE}/authors_merged.txt;
+
+      - name: Cache runners svn-2-git-fhem mirror directory  
+        id: cache-fhem
+        uses: actions/cache@v2
+        with:
+          path: ./src/fhem-mirror
+          key: ${{ runner.os }}-fhemsvnmirror-${{ steps.get-date.outputs.seconds }}
+          restore-keys: |
+            ${{ runner.os }}-fhemsvnmirror-
+
+
+      - name: init mirror repository if it is not already a mirror
+        run: |
+          if [[ ! -d "${GITHUB_WORKSPACE}/src/fhem-mirror/.git" ]]; then
+            git init "${GITHUB_WORKSPACE}/src/fhem-mirror" ;
+            cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
+            git svn init --trunk=trunk --prefix=svn/ --no-metadata https://svn.fhem.de/fhem ;
+            git config --add svn-remote.svn.preserve-empty-dirs "true" ;
+            git config --add svn-remote.svn.placeholder-filename ".gitkeep" ;
+            git config --add svn.authorsfile "${GITHUB_WORKSPACE}/authors_merged.txt" ;
+          else
+            echo "Current .git/config file content:";
+            cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
+          fi
+
+
+      # - name: Update or checkout fhem from svn
+      #   if: steps.cache-fhem.outputs.cache-hit != 'true'
+      #   run: svn update ./src/fhem/trunk/  || svn co https://svn.fhem.de/fhem/trunk ./src/fhem/trunk;
+
+      # - name: get svn vars
+      #   id: svnVars
+      #   run: |
+      #     echo "::set-output name=FHEM_REVISION_LATEST::$( cd ./src/fhem/trunk; svn info --show-item last-changed-revision)"
+      #     echo "::set-output name=FHEM_VERSION::$( cd ./src/fhem/trunk; svn ls "^/tags" https://svn.fhem.de/fhem/ | grep "FHEM_" | sort | tail -n 1 | cut -d / -f 1 | cut -d " " -f 1 |cut -d _ -f 2- | sed s/_/./g )"
+
+      - name: fetch svn to git master branch
+        id: fetchsvn
+        timeout-minutes: 1800
+        run: |
+          echo "::set-output name=SVN_FETCH_STATUS::incomplete"
+          cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
+          RET=0
+          timeout 630 git svn -q fetch || RET=$?;
+          if [[ $RET == 0 ]]; then
+            git checkout -f "master"
+            git rebase "remotes/svn/trunk"
+            echo "::set-output name=SVN_FETCH_STATUS::complete"
+          elif [[ $RET != 124 ]]; then
+            echo "::set-output name=SVN_FETCH_STATUS::error"
+          fi
+
+      - name: Verify no fetch error state
+        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'error' }}
+        run: |
+          echo "A permanent error occured"
+          exit 1
+
+      # - name: Commit fetched files
+      #   run: |
+      #     cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
+      #     echo "Will now prepare push following directory structure to remote repo:";
+      #     ls -la ;
+      #     git config --add remote.origin.push 'refs/remotes/svn/trunk:refs/heads/master';
+
+      - name: Push force changes to master branch in same repo
+        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: master
+          directory: ./src/fhem-mirror
+          force: true
