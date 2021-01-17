@@ -26,7 +26,7 @@ jobs:
           sudo apt-get install git-svn --no-install-recommends
 
       - name: checkout mirror config branch
-        uses: actions/checkout@master
+        uses: actions/checkout@v2
 
       - name: Get current date as seconds
         id: get-date
@@ -106,7 +106,7 @@ jobs:
 
       - name: Push force changes to master branch in same repo
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
-        uses: ad-m/github-push-action@master
+        uses: ad-m/github-push-action@v0.6.0
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: master
