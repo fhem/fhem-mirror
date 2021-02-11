@@ -44,7 +44,7 @@ jobs:
       - name: Cache runners svn-2-git-fhem mirror directory  
         # Some room for improvement because we create a new cache on every run where a new ref is fetched, this isn't very nice, normaly weneed only the last one and it takes 7 days until they are deleted
         id: cache-fhem
-        uses: actions/cache@v2
+        uses: actions/cache@v2.1.4
         with:
           path: ./src/fhem-mirror
           key: ${{ runner.os }}-fhemsvnmirror-${{ steps.get-date.outputs.seconds }}
