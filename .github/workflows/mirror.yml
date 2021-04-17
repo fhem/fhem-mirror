@@ -22,6 +22,7 @@ jobs:
 
       - name: install git-svn package
         run: |
+          sudo apt-get remove git git-man
           sudo apt-get update
           sudo apt-get install git-svn --no-install-recommends
 
