@@ -27,7 +27,7 @@ jobs:
           sudo apt-get install git-svn --no-install-recommends
 
       - name: checkout mirror config branch
-        uses: actions/checkout@v2.3.4
+        uses: actions/checkout@v2.3.5
 
       - name: Get current date as seconds
         id: get-date
