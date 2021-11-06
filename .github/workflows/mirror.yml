@@ -16,10 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
 
-    env:
-      TRAVIS_REPO_SLUG: ${{ github.repository }} 
     steps:
-
       - name: install git-svn package
         run: |
           sudo apt-get remove git git-man
@@ -33,9 +30,11 @@ jobs:
         id: get-date
         run: |
           echo "::set-output name=seconds::$(/bin/date -u "+%s")"
+          echo "::set-output name=timestamp::$(/bin/date -u'+%Y%m%d_%H')"
         shell: bash
 
-      - uses: actions/checkout@v2
+      
+      - uses: actions/checkout@v2.4.0
         with:
           ref: travis
           path: ./authors
@@ -53,7 +52,7 @@ jobs:
         uses: actions/cache@v2.1.6
         with:
           path: ./src/fhem-mirror
-          key: ${{ runner.os }}-fhemsvnmirror-${{ steps.get-date.outputs.seconds }}
+          key: ${{ runner.os }}-fhemsvnmirror-${{ steps.get-date.outputs.timestamp }}
           restore-keys: |
             ${{ runner.os }}-fhemsvnmirror-
 
@@ -111,7 +110,7 @@ jobs:
       #     git config --add remote.origin.push 'refs/remotes/svn/trunk:refs/heads/master';
       - name: Recopy Workflow Files
         run: |
-          cp -R .github/* ./src/fhem-mirror/.github/
+          cp -R .github ./src/fhem-mirror/
           exit 1
 
       - name: Push force changes to master branch in same repo
