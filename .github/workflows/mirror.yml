@@ -23,7 +23,13 @@ jobs:
           sudo apt-get update
           sudo apt-get install git-svn --no-install-recommends
 
-      - name: checkout mirror config branch
+      - name: checkout authors
+        uses: actions/checkout@v2.4.0
+        with:
+          ref: travis
+          path: ./authors
+
+      - name: checkout main branch
         uses: actions/checkout@v2.4.0
 
       - name: Get current date as seconds
@@ -32,13 +38,7 @@ jobs:
           echo "::set-output name=seconds::$(/bin/date -u "+%s")"
           echo "::set-output name=timestamp::$(/bin/date -u'+%Y%m%d_%H')"
         shell: bash
-
-      
-      - uses: actions/checkout@v2.4.0
-        with:
-          ref: travis
-          path: ./authors
-          
+    
       - name: generate merged authors file
         run: |
           cd /tmp
@@ -55,7 +55,6 @@ jobs:
           key: ${{ runner.os }}-fhemsvnmirror-${{ steps.get-date.outputs.timestamp }}
           restore-keys: |
             ${{ runner.os }}-fhemsvnmirror-
-
 
       - name: init mirror repository if it is not already a mirror
         timeout-minutes: 1800
@@ -110,7 +109,7 @@ jobs:
       #     git config --add remote.origin.push 'refs/remotes/svn/trunk:refs/heads/master';
       - name: Recopy Workflow Files
         run: |
-          cp -R .github ./src/fhem-mirror/
+          cp -R ${GITHUB_WORKSPACE}/.github ./src/fhem-mirror
           exit 1
 
       - name: Push force changes to master branch in same repo
