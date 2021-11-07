@@ -108,10 +108,9 @@ jobs:
       #     ls -la ;
       #     git config --add remote.origin.push 'refs/remotes/svn/trunk:refs/heads/master';
       - name: Recopy Workflow Files
-        run: 
+        run: |
           ls -a ${GITHUB_WORKSPACE}
           cp -R ${GITHUB_WORKSPACE}/.github ./src/fhem-mirror
-          exit 1
 
       - name: Push force changes to master branch in same repo
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
