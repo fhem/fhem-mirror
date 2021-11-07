@@ -87,7 +87,7 @@ jobs:
           RET=0
           timeout 1200 git svn -q fetch || timeout 120 git svn -q fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
           if [[ $RET == 0 ]]; then
-            git checkout -f "main"
+            git checkout -f "master"
             git rebase "remotes/svn/trunk"
             git add .github/* -m "add workflow files"
             echo "::set-output name=SVN_FETCH_STATUS::complete"
