@@ -88,7 +88,8 @@ jobs:
           timeout 1200 git svn -q fetch || timeout 120 git svn -q fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
           if [[ $RET == 0 ]]; then
             git checkout -f "master"
-            git rebase "remotes/svn/trunk"
+            #git rebase "remotes/svn/trunk"
+            git svn rebase -l
             echo "::set-output name=SVN_FETCH_STATUS::complete"
           elif [[ $RET != 124 ]]; then
             echo "::set-output name=SVN_FETCH_STATUS::error"
@@ -131,5 +132,5 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: main
           directory: ./src/fhem-mirror
-          force: true
+          force: false
           tags: true
