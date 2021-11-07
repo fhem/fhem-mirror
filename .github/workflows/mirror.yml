@@ -31,6 +31,8 @@ jobs:
 
       - name: checkout main branch
         uses: actions/checkout@v2.4.0
+        with:
+          path: ./main
 
       - name: Get current date as seconds
         id: get-date
@@ -92,7 +94,7 @@ jobs:
 
       - name: Copy Workflow Files to target
         run: |
-          cp -R ${GITHUB_WORKSPACE}/.github ./src/fhem-mirror
+          cp -R ${GITHUB_WORKSPACE}/main/.github ./src/fhem-mirror
 
       - name: Verify no fetch error state
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'error' }}
