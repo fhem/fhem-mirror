@@ -89,7 +89,6 @@ jobs:
           if [[ $RET == 0 ]]; then
             git checkout -f "master"
             git rebase "remotes/svn/trunk"
-            git add .github/* && git commit -m "add workflow files"
           elif [[ $RET != 124 ]]; then
             echo "::set-output name=SVN_FETCH_STATUS::error"
           fi
