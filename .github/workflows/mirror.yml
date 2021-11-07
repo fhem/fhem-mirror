@@ -119,7 +119,7 @@ jobs:
           add: '.github/*'
           branch: 'main'
           pull: 'NO-PULL'
-          push: '--force'
+          push: false
 
       - name: Push force changes to master branch in same repo
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
