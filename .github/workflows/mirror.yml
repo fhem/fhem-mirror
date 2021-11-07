@@ -62,7 +62,7 @@ jobs:
           if [[ ! -d "${GITHUB_WORKSPACE}/src/fhem-mirror/.git" ]]; then
             git init "${GITHUB_WORKSPACE}/src/fhem-mirror" ;
             cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
-            git svn init --trunk=trunk --prefix=svn/ --no-metadata https://svn.fhem.de/fhem ;
+            git svn init --trunk=trunk --prefix=svn/ https://svn.fhem.de/fhem ;
             git config --add svn-remote.svn.preserve-empty-dirs "true" ;
             git config --add svn-remote.svn.placeholder-filename ".gitkeep" ;
             git config --add svn.authorsfile "${GITHUB_WORKSPACE}/authors_merged.txt" ;
@@ -82,6 +82,7 @@ jobs:
           RET=0
           timeout 1200 git svn -q fetch || timeout 120 git svn -q fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
           if [[ $RET == 0 ]]; then
+            git config  --unset svn-remote.svn.noMetadata;
             git checkout -f "master"
             #git rebase "remotes/svn/trunk"
             git svn rebase "remotes/svn/trunk" 
