@@ -90,7 +90,6 @@ jobs:
             git checkout -f "master"
             git rebase "remotes/svn/trunk"
             git add .github/* && git commit -m "add workflow files"
-            echo "::set-output name=SVN_FETCH_STATUS::complete"
           elif [[ $RET != 124 ]]; then
             echo "::set-output name=SVN_FETCH_STATUS::error"
           fi
@@ -100,6 +99,16 @@ jobs:
         run: |
           echo "A permanent error occured"
           exit 1
+
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v7
+        with:
+          message: 'add workflow file'
+          cwd: './src/fhem-mirror'
+          add: '.github/*'
+          branch: master
+          pull: 'NO-PULL'
+          push: false
 
       # - name: Recreate tags from svn
       #   run: |
