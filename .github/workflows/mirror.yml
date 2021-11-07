@@ -73,6 +73,20 @@ jobs:
             cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
           fi
 
+      - name: Copy Workflow Files to target
+        run: |
+          cp -R ${GITHUB_WORKSPACE}/.github ./src/fhem-mirror
+
+      - name: Commit changes
+        uses: EndBug/add-and-commit@v7
+        with:
+          message: 'add workflow file'
+          cwd: './src/fhem-mirror'
+          add: '.github/*'
+          branch: main
+          pull: 'NO-PULL'
+          push: false
+          
       - name: fetch svn to git master branch
         id: fetchsvn
         timeout-minutes: 1800
@@ -107,19 +121,7 @@ jobs:
       #     echo "Will now prepare push following directory structure to remote repo:";
       #     ls -la ;
       #     git config --add remote.origin.push 'refs/remotes/svn/trunk:refs/heads/master';
-      - name: Copy Workflow Files to target
-        run: |
-          cp -R ${GITHUB_WORKSPACE}/.github ./src/fhem-mirror
 
-      - name: Commit changes
-        uses: EndBug/add-and-commit@v7
-        with:
-          message: 'add workflow file'
-          cwd: './src/fhem-mirror'
-          add: '.github/*'
-          branch: 'main'
-          pull: 'NO-PULL'
-          push: false
 
       - name: Push force changes to master branch in same repo
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
