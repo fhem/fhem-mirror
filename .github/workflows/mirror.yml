@@ -116,11 +116,10 @@ jobs:
         with:
           message: 'add workflow file'
           cwd: './src/fhem-mirror'
-          add: '/.github/*'
+          add: '.github/*'
           branch: 'main'
           pull: 'NO-PULL'
-          psuh: '--force'
-
+          push: '--force'
 
       - name: Push force changes to master branch in same repo
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
