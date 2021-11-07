@@ -72,12 +72,7 @@ jobs:
             echo "Current .git/config file content:";
             cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
           fi
-
-      - name: Copy Workflow Files to target
-        run: |
-          cp -R ${GITHUB_WORKSPACE}/.github ./src/fhem-mirror
-
-          
+      
       - name: fetch svn to git master branch
         id: fetchsvn
         timeout-minutes: 1800
@@ -89,11 +84,15 @@ jobs:
           if [[ $RET == 0 ]]; then
             git checkout -f "master"
             #git rebase "remotes/svn/trunk"
-            git svn rebase -l "remotes/svn/trunk"
+            git svn rebase "remotes/svn/trunk" 
             echo "::set-output name=SVN_FETCH_STATUS::complete"
           elif [[ $RET != 124 ]]; then
             echo "::set-output name=SVN_FETCH_STATUS::error"
           fi
+
+      - name: Copy Workflow Files to target
+        run: |
+          cp -R ${GITHUB_WORKSPACE}/.github ./src/fhem-mirror
 
       - name: Verify no fetch error state
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'error' }}
