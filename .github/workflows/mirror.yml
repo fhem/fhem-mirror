@@ -37,7 +37,7 @@ jobs:
       - name: Get current date as seconds
         id: get-date
         run: |
-          echo "::set-output name=seconds::$(/bin/date -u "+%s")"
+          echo "::set-output name=seconds::$(/bin/date -u'+%s')"
           echo "::set-output name=timestamp::$(/bin/date -u'+%Y%m%d_%H')"
         shell: bash
     
