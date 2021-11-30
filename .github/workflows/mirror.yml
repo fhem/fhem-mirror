@@ -54,9 +54,10 @@ jobs:
         uses: actions/cache@v2.1.6
         with:
           path: ./src/fhem-mirror
-          key: ${{ runner.os }}-fhemsvnmirror2-${{ steps.get-date.outputs.timestamp }}
+          key: ${{ runner.os }}-fhemsvnmirror3-${{ steps.get-date.outputs.timestamp }}
           restore-keys: |
-            ${{ runner.os }}-fhemsvnmirror2-
+            ${{ runner.os }}-fhemsvnmirror3-
+            ${{ runner.os }}-fhemsvnmirror2-20211129
 
       - name: init mirror repository if it is not already a mirror
         timeout-minutes: 1800
