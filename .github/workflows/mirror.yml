@@ -57,7 +57,6 @@ jobs:
           key: ${{ runner.os }}-fhemsvnmirror3-${{ steps.get-date.outputs.timestamp }}
           restore-keys: |
             ${{ runner.os }}-fhemsvnmirror3-
-            ${{ runner.os }}-fhemsvnmirror2-20211129
 
       - name: init mirror repository if it is not already a mirror
         timeout-minutes: 1800
@@ -86,8 +85,9 @@ jobs:
           timeout 1200 git svn -q fetch || timeout 120 git svn -q fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
           if [[ $RET == 0 ]]; then
             git checkout -f "master"
+            git branch -a
             #git rebase "remotes/svn/trunk"
-            git svn rebase "remotes/svn/trunk" 
+            git svn rebase 
             echo "::set-output name=SVN_FETCH_STATUS::complete"
           elif [[ $RET != 124 ]]; then
             echo "::set-output name=SVN_FETCH_STATUS::error"
