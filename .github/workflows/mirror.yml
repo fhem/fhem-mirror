@@ -86,9 +86,7 @@ jobs:
           if [[ $RET == 0 ]]; then
             git checkout -f "master"
             git branch -a
-            #git rebase "remotes/svn/trunk"
-            git update-ref refs/remotes/svn/trunk
-            git svn rebase "remotes/svn/trunk" -l
+            git svn rebase "refs/remotes/svn/trunk" 
             echo "::set-output name=SVN_FETCH_STATUS::complete"
           elif [[ $RET != 124 ]]; then
             echo "::set-output name=SVN_FETCH_STATUS::error"
