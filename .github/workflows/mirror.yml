@@ -81,6 +81,7 @@ jobs:
         run: |
           echo "::set-output name=SVN_FETCH_STATUS::incomplete"
           cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
+          git branch -a
           RET=0
           timeout 1200 git svn -q fetch || timeout 120 git svn -q fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
           if [[ $RET == 0 ]]; then
