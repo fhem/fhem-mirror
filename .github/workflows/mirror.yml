@@ -115,8 +115,8 @@ jobs:
           pull: 'NO-PULL'
           push: false
 
-       - name: Recreate tags from svn
-         run: |
+      - name: Recreate tags from svn
+        run: |
            for tag in `git branch -r | grep "tags/" | sed 's/ tags\///'`; do
              git tag -a -m"Converting SVN tags" $tag refs/remotes/$tag
            done
