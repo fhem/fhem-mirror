@@ -48,7 +48,7 @@ jobs:
           path: ./src/fhem-mirror/.git
           key: ${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}
           restore-keys: |
-          key: ${{ runner.os }}-fhemsvndir-
+            ${{ runner.os }}-fhemsvndir-
 
       - name: generate merged authors file
         run: |
