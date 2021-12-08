@@ -60,10 +60,10 @@ jobs:
 
       - name: init mirror repository if it is not already a mirror
         timeout-minutes: 3800
+        working-directory: ./src/fhem-mirror
         run: |
           if [[ ! -d "${GITHUB_WORKSPACE}/src/fhem-mirror/.git" ]]; then
             git init "${GITHUB_WORKSPACE}/src/fhem-mirror" ;
-            cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
             git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
             git config --add svn-remote.svn.preserve-empty-dirs "true" ;
             git config --add svn-remote.svn.placeholder-filename ".gitkeep" ;
