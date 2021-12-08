@@ -84,7 +84,7 @@ jobs:
           cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
           git branch -a
           RET=0
-          timeout 1200 git svn -q fetch || timeout 120 git svn -q fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
+          timeout 1200 git svn -q fetch || timeout 300 git svn -q fetch || RET=$?;  # Limit each run to 25 minutes to not overload fhem.de servers and build cache in chunks
           if [[ $RET == 0 ]]; then
             git checkout -f "master"
             git branch -a
