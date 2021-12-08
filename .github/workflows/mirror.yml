@@ -59,19 +59,20 @@ jobs:
             ${{ runner.os }}-fhemsvnmirror3-
 
       - name: init mirror repository if it is not already a mirror
-        timeout-minutes: 1800
+        timeout-minutes: 3800
         run: |
           if [[ ! -d "${GITHUB_WORKSPACE}/src/fhem-mirror/.git" ]]; then
             git init "${GITHUB_WORKSPACE}/src/fhem-mirror" ;
             cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
-            git svn init --trunk=trunk --prefix=svn/ https://svn.fhem.de/fhem ;
+            git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
             git config --add svn-remote.svn.preserve-empty-dirs "true" ;
             git config --add svn-remote.svn.placeholder-filename ".gitkeep" ;
             git config --add svn.authorsfile "${GITHUB_WORKSPACE}/authors_merged.txt" ;
             # Run extra fetches after init, go pick up some base refs for the cache on first run only!
-            timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || true
+            timeout 3000 git svn -q fetch || timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || true
           else
             echo "Current .git/config file content:";
+            git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;            
             cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
           fi
       
