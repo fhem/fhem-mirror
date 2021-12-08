@@ -32,66 +32,60 @@ jobs:
       - name: checkout main branch
         uses: actions/checkout@v2.4.0
         with:
-          path: ./main
+          path: ./src/fhem-mirror
 
-      - name: Get current date as seconds
+      - name: Get current date 
         id: get-date
         run: |
-          echo "::set-output name=seconds::$(/bin/date -u +'%s')"
-          echo "::set-output name=timestamp::$(/bin/date -u +'%Y%m%d_%H')"
+          echo "::set-output name=timestamp::$(/bin/date -u "+%Y%m%d%H" )"
         shell: bash
-    
-      - name: generate merged authors file
-        run: |
-          cd /tmp
-          svn log https://svn.fhem.de/fhem --xml --quiet | grep author | sort -u | perl -pe 's/.*>(.*?)<.*/$1 = $1 <>/' > ${GITHUB_WORKSPACE}/authors_svn.txt;
-          cat ${GITHUB_WORKSPACE}/authors/authors.txt ${GITHUB_WORKSPACE}/authors_svn.txt | sort -u -k1,1 > ${GITHUB_WORKSPACE}/authors_merged.txt;
-          ls -la ${GITHUB_WORKSPACE}/authors_merged.txt;
 
       - name: Cache runners svn-2-git-fhem mirror directory  
         # Some room for improvement because we create a new cache on every run where a new ref is fetched, this isn't very nice, normaly we need only the last one and it takes 7 days until they are deleted
         id: cache-fhem
         uses: actions/cache@v2.1.6
         with:
-          path: ./src/fhem-mirror
-          key: ${{ runner.os }}-fhemsvnmirror3-${{ steps.get-date.outputs.timestamp }}
+          path: ./src/fhem-mirror/.git
+          key: ${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}
           restore-keys: |
-            ${{ runner.os }}-fhemsvnmirror3-
+          key: ${{ runner.os }}-fhemsvndir-
 
-      - name: init mirror repository if it is not already a mirror
-        timeout-minutes: 3800
+      - name: generate merged authors file
+        run: |
+          cd /tmp
+          svn log https://svn.fhem.de/fhem --xml --quiet | grep author | sort -u | perl -pe 's/.*>(.*?)<.*/$1 = $1 <>/' > ${GITHUB_WORKSPACE}/authors/authors_svn.txt;
+          cat ${GITHUB_WORKSPACE}/authors/authors.txt ${GITHUB_WORKSPACE}/authors/authors_svn.txt | sort -u -k1,1 > ${GITHUB_WORKSPACE}/authors/authors_merged.txt;
+          ls -la ${GITHUB_WORKSPACE}/authors/authors_merged.txt;
+
+      - name: fetch from svn
+        id: fetchsvn
+        timeout-minutes: 120
         working-directory: ./src/fhem-mirror
         run: |
-          if [[ ! -d "${GITHUB_WORKSPACE}/src/fhem-mirror/.git" ]]; then
-            git init "${GITHUB_WORKSPACE}/src/fhem-mirror" ;
-            git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
-            git config --add svn-remote.svn.preserve-empty-dirs "true" ;
-            git config --add svn-remote.svn.placeholder-filename ".gitkeep" ;
-            git config --add svn.authorsfile "${GITHUB_WORKSPACE}/authors_merged.txt" ;
-            # Run extra fetches after init, go pick up some base refs for the cache on first run only!
-            timeout 3000 git svn -q fetch || timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || true
-          else
-            echo "Current .git/config file content:";
-            git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;            
-            cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
-          fi
-      
-      - name: fetch svn to git master branch
-        id: fetchsvn
-        timeout-minutes: 1800
-        run: |
+          echo "::group::git svn init"
+          git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
+          git config --add svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt"
+          git config --add svn-remote.svn.preserve-empty-dirs "true" ;
+          git config --add svn-remote.svn.placeholder-filename ".gitkeep" ;
+          echo "Current .git/config file content:";
+          cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
+          echo "::endgroup::"
+          
           echo "::set-output name=SVN_FETCH_STATUS::incomplete"
-          cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
-          git branch -a
-          RET=0
-          timeout 1200 git svn -q fetch || timeout 300 git svn -q fetch || RET=$?;  # Limit each run to 25 minutes to not overload fhem.de servers and build cache in chunks
-          if [[ $RET == 0 ]]; then
-            git checkout -f "master"
-            git branch -a
-            git svn rebase "refs/remotes/svn/trunk" 
+          # Run fetches after init, go pick up some base refs for the cache on first run only!
+          RET=124
+          c=0
+          while [ $RET -eq 124 ]; do
+            echo "::group::Fetch ${c}/2"
+            timeout 600 git svn --log-window-size=200 -q fetch && RET=$? || true
+            if [ "$RET" -ne 0 ] && [ "$RET" -ne 124 ]; then
+              echo "::set-output name=SVN_FETCH_STATUS::error"
+            fi 
+            ((c++)) && ((c==10)) && break
+            echo "::endgroup::"
+          done
+          if [ "$RET" -eq 0 ]; then          
             echo "::set-output name=SVN_FETCH_STATUS::complete"
-          elif [[ $RET != 124 ]]; then
-            echo "::set-output name=SVN_FETCH_STATUS::error"
           fi
 
       - name: Copy Workflow Files to target
@@ -117,11 +111,19 @@ jobs:
           push: false
 
       - name: Recreate tags from svn
+        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
         working-directory: ./src/fhem-mirror
         run: |
-           for tag in `git branch -r | grep "tags/" | sed 's/ tags\///'`; do
-             git tag -a -m"Converting SVN tags" $tag refs/remotes/$tag
-           done
+           git for-each-ref --format="%(refname:lstrip=-1) %(objectname)" refs/remotes/origin/tags/FHEM_*_?  \
+           | while read BRANCH REF
+             do
+               TAG_NAME=${BRANCH#FHEM_}
+               TAG_NAME=$(echo $TAG_NAME | sed 's/_/./g')
+               BODY="$(git log -1 --format=format:%B $REF)"
+               echo "branch=$BRANCH ref=$REF parent=$(git rev-parse $REF^) tagname=$TAG_NAME body=$BODY" >&2
+               git tag -a -m "$BODY" $TAG_NAME $REF^  #&&\
+               git branch -r -d origin/tags/$BRANCH
+            done
 
       # - name: Commit fetched files
       #   run: |
