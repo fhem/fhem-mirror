@@ -88,10 +88,10 @@ jobs:
             echo "::set-output name=SVN_FETCH_STATUS::complete"
           fi
 
-      - name: Copy Workflow Files to target
-        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
-        run: |
-          cp -R ${GITHUB_WORKSPACE}/main/.github ./src/fhem-mirror
+     # - name: Copy Workflow Files to target
+     #   if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
+     # run: |
+     #   cp -R ${GITHUB_WORKSPACE}/main/.github ./src/fhem-mirror
 
       - name: Verify no fetch error state
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'error' }}
