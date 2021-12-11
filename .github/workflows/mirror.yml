@@ -137,7 +137,7 @@ jobs:
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
         uses: ad-m/github-push-action@v0.6.0
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ github.token }}	
           branch: main
           directory: ./src/fhem-mirror
           force: true
