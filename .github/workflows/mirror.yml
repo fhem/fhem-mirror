@@ -99,16 +99,16 @@ jobs:
           echo "A permanent error occured"
           exit 1
 
-      #- name: Commit changes
-      #  if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
-      #  uses: EndBug/add-and-commit@v7
-      #  with:
-      #    message: 'add workflow file'
-      #    cwd: './src/fhem-mirror'
-      #    add: '.github/*'
-      #    branch: master
-      #    pull: 'NO-PULL'
-      #    push: false
+      - name: Commit changes
+        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
+        uses: EndBug/add-and-commit@v7
+        with:
+          message: 'add workflow file'
+          cwd: './src/fhem-mirror'
+          add: '.github/*'
+          branch: main
+          pull: 'NO-PULL'
+          push: origin main --force
 
       - name: Recreate tags from svn
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
