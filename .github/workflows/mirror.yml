@@ -29,11 +29,6 @@ jobs:
           ref: travis
           path: ./authors
 
-      - name: checkout main branch
-        uses: actions/checkout@v2.4.0
-        with:
-          path: ./main
-          
       - name: Get current date 
         id: get-date
         run: |
@@ -45,10 +40,22 @@ jobs:
         id: cache-fhem
         uses: actions/cache@v2.1.6
         with:
-          path: ./src/fhem-mirror/.git
+          path: |
+            ./src/fhem-mirror/.git
+            !./src/fhem-mirror/.git/config
           key: ${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}
           restore-keys: |
             ${{ runner.os }}-fhemsvndir-
+
+      - name: remove gitconfig
+        run: |
+          rm ./src/fhem-mirror/.git/config 
+          
+      - name: checkout main branch
+        uses: actions/checkout@v2.4.0
+        clean: false
+        with:
+          path: ./src/fhem-mirror
 
       - name: generate merged authors file
         run: |
