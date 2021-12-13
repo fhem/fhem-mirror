@@ -42,7 +42,6 @@ jobs:
         with:
           path: |
             ./src/fhem-mirror/.git
-            !./src/fhem-mirror/.git/config
           key: ${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}
           restore-keys: |
             ${{ runner.os }}-fhemsvndir-
