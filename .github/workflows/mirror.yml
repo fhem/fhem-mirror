@@ -99,6 +99,10 @@ jobs:
           echo "A permanent error occured"
           exit 1
 
+      - name: show gitconfig
+        run: | 
+          cat ${GITHUB_WORKSPACE}/main/.git/config;
+
       - name: Commit changes
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
         uses: EndBug/add-and-commit@v7
