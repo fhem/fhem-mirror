@@ -53,9 +53,9 @@ jobs:
           
       - name: checkout main branch
         uses: actions/checkout@v2.4.0
-        clean: false
         with:
           path: ./src/fhem-mirror
+          clean: false
 
       - name: generate merged authors file
         run: |
