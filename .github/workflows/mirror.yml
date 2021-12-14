@@ -107,7 +107,7 @@ jobs:
 
       - name: show gitconfig
         run: | 
-          cat ${GITHUB_WORKSPACE}/main/.git/config;
+          cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
 
       - name: Commit changes
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
