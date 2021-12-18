@@ -83,7 +83,7 @@ jobs:
           c=1
           while [ $RET -eq 124 ]; do
             echo "::group::Fetch ${c}/5"
-            timeout 600 git svn --log-window-size=200 -q fetch && RET=$? || true
+            timeout 1200 git svn --log-window-size=200 -q fetch && RET=$? || true
             if [ "$RET" -ne 0 ] && [ "$RET" -ne 124 ]; then
               echo "::set-output name=SVN_FETCH_STATUS::error"
             fi 
