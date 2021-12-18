@@ -46,9 +46,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-fhemsvndir-
 
-      - name: remove gitconfig
-        run: |
-          rm ./src/fhem-mirror/.git/config 
+      #- name: remove gitconfig
+      #  run: |
+      #    rm ./src/fhem-mirror/.git/config 
           
       - name: checkout main branch
         uses: actions/checkout@v2.4.0
