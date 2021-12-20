@@ -48,7 +48,7 @@ jobs:
         id: cache-fhem
         uses: actions/cache@v2.1.7
         with:
-          path: ./src/fhem-mirror
+          path: ./src/fhem-mirror/.git
           key: ${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}
           restore-keys: |
             ${{ runner.os }}-fhemsvndir-
