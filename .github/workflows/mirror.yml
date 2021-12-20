@@ -37,7 +37,7 @@ jobs:
 
       - name: generate merged authors file
         run: |
-          ls -La ${GITHUB_WORKSPACE}
+          ls -RLa ${GITHUB_WORKSPACE}
           cd /tmp
           mkdir -p ${GITHUB_WORKSPACE}/authors
           svn log https://svn.fhem.de/fhem --xml --quiet | grep author | sort -u | perl -pe 's/.*>(.*?)<.*/$1 = $1 <>/' > ${GITHUB_WORKSPACE}/authors_svn.txt;
