@@ -81,6 +81,8 @@ jobs:
           RET=0
           timeout 1200 git svn -q fetch || timeout 120 git svn -q fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
           if [[ $RET == 0 ]]; then
+            git config --global user.email "actions@gitbhub.com"
+            git config --global user.name "Github Actions"
             git fetch origin
             git branch -a
             git checkout -f "master"
