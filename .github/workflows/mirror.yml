@@ -91,8 +91,8 @@ jobs:
           if [[ $RET == 0 ]]; then
             git branch master
             git reset --hard
-            #git config --global user.email "actions@gitbhub.com"
-            #git config --global user.name "Github Actions"
+            git config --global user.email "actions@gitbhub.com"
+            git config --global user.name "Github Actions"
             git rebase "remotes/svn/trunk"
             echo "::set-output name=SVN_FETCH_STATUS::complete"
           elif [[ $RET != 124 ]]; then
