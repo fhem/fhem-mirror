@@ -53,11 +53,14 @@ jobs:
           key: ${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}
           restore-keys: |
             ${{ runner.os }}-fhemsvndir-
+      
+      - name: 'Tar files'
+        run: tar -cvf ${GITHUB_WORKSPACE}/svnMirror.tar ./src/fhem-mirror/
 
       - uses: actions/upload-artifact@v2
         with:
           name: mirror-artifact
-          path: ./src/fhem-mirror/
+          path: ./svnMirror.tar
 
       - name: init mirror repository if it is not already a mirror
         timeout-minutes: 1800
