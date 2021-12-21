@@ -54,6 +54,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-fhemsvndir-
 
+      - uses: actions/upload-artifact@v2
+        with:
+          name: mirror-artifact
+          path: ./src/fhem-mirror/
+
       - name: init mirror repository if it is not already a mirror
         timeout-minutes: 1800
         run: |
@@ -86,7 +91,7 @@ jobs:
             git config --global user.name "Github Actions"
             git fetch origin
             git branch -a
-            git checkout -f "master"
+            git checkout -f "temporary"
             git rebase "remotes/svn/trunk"
             echo "::set-output name=SVN_FETCH_STATUS::complete"
           elif [[ $RET != 124 ]]; then
