@@ -88,13 +88,12 @@ jobs:
           RET=0
           timeout 1200 git svn -q fetch || timeout 120 git svn -q fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
           if [[ $RET == 0 ]]; then
-            git checkout temp_branch
+            git checkout travis
             git branch -f master
             git checkout master
             git config --global user.email "actions@gitbhub.com"
             git config --global user.name "Github Actions"
             git reset --hard "remotes/svn/trunk"
-            git branch -D temp_branch
             echo "::set-output name=SVN_FETCH_STATUS::complete"
           elif [[ $RET != 124 ]]; then
             echo "::set-output name=SVN_FETCH_STATUS::error"
