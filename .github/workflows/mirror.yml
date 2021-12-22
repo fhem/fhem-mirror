@@ -54,13 +54,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-fhemsvndir-
       
-      - name: 'Tar files'
-        run: tar -cvf ${GITHUB_WORKSPACE}/svnMirror.tar ./src/fhem-mirror/
+      #- name: 'Tar files'
+      #  run: tar -cvf ${GITHUB_WORKSPACE}/svnMirror.tar ./src/fhem-mirror/
 
-      - uses: actions/upload-artifact@v2
-        with:
-          name: mirror-artifact
-          path: ./svnMirror.tar
+      #- uses: actions/upload-artifact@v2
+      #  with:
+      #    name: mirror-artifact
+      #    path: ./svnMirror.tar
 
       - name: init mirror repository if it is not already a mirror
         timeout-minutes: 1800
@@ -88,12 +88,14 @@ jobs:
           RET=0
           timeout 1200 git svn -q fetch || timeout 120 git svn -q fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
           if [[ $RET == 0 ]]; then
-            git fetch
-            git checkout -f master
+            #git fetch
+            #git checkout -f master
             #git reset --hard
+            git branch master
+            git checkout master
             git config --global user.email "actions@gitbhub.com"
             git config --global user.name "Github Actions"
-            git rebase "remotes/svn/trunk"
+            git reset --hard "remotes/svn/trunk"
             echo "::set-output name=SVN_FETCH_STATUS::complete"
           elif [[ $RET != 124 ]]; then
             echo "::set-output name=SVN_FETCH_STATUS::error"
