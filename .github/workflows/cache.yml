@@ -70,9 +70,9 @@ jobs:
         run: |
           echo "::group::git svn init"
           git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
-          git config --add svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt"
-          git config --add svn-remote.svn.preserve-empty-dirs "true" ;
-          git config --add svn-remote.svn.placeholder-filename ".gitkeep" ;
+          git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt"
+          git config --replace-all svn-remote.svn.preserve-empty-dirs "true" ;
+          git config --replace-all svn-remote.svn.placeholder-filename ".gitkeep" ;
           echo "Current .git/config file content:";
           cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
           echo "::endgroup::"
