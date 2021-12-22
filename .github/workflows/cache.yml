@@ -1,13 +1,11 @@
 name: Update cache from SVN
 
 on:
-  push:
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-  schedule:
-  - cron: '59 */3 * * *' # every third hour to keep cache up to date
+  #schedule:
+  #- cron: '59 */3 * * *' # every third hour to keep cache up to date
 
 jobs:
   # This workflow contains a single job called "build"
@@ -70,9 +68,9 @@ jobs:
         run: |
           echo "::group::git svn init"
           git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
-          git config --add svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt"
-          git config --add svn-remote.svn.preserve-empty-dirs "true" ;
-          git config --add svn-remote.svn.placeholder-filename ".gitkeep" ;
+          git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt"
+          git config --replace-all svn-remote.svn.preserve-empty-dirs "true" ;
+          git config --replace-all svn-remote.svn.placeholder-filename ".gitkeep" ;
           echo "Current .git/config file content:";
           cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
           echo "::endgroup::"
