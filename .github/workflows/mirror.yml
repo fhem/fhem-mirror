@@ -116,8 +116,8 @@ jobs:
                TAG_NAME=$(echo $TAG_NAME | sed 's/_/./g')
                BODY="$(git log -1 --format=format:%B $REF)"
                echo "branch=$BRANCH ref=$REF parent=$(git rev-parse $REF^) tagname=$TAG_NAME body=$BODY" >&2
-               git tag -a -m "$BODY" $TAG_NAME $REF^  #&&\
-               git branch -r -d origin/tags/$BRANCH
+               git tag -a -m "$BODY" $TAG_NAME $REF^  
+               # git branch -r -d origin/tags/$BRANCH
             done
 
       - name: Push force changes to master branch in same repo
