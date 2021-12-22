@@ -54,13 +54,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-fhemsvndir-
       
-      #- name: 'Tar files'
-      #  run: tar -cvf ${GITHUB_WORKSPACE}/svnMirror.tar ./src/fhem-mirror/
+      - name: 'Tar files'
+        run: tar -cvf ${GITHUB_WORKSPACE}/svnMirror.tar ./src/fhem-mirror/
 
-      #- uses: actions/upload-artifact@v2
-      #  with:
-      #    name: mirror-artifact
-      #    path: ./svnMirror.tar
+      - uses: actions/upload-artifact@v2
+        with:
+          name: mirror-artifact
+          path: ./svnMirror.tar
 
       - name: init mirror repository if it is not already a mirror
         timeout-minutes: 1800
@@ -68,11 +68,10 @@ jobs:
           if [[ ! -d "${GITHUB_WORKSPACE}/src/fhem-mirror/.git" ]]; then
             git init "${GITHUB_WORKSPACE}/src/fhem-mirror" ;
             cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
-            # git svn init --trunk=trunk --prefix=svn/ --no-metadata https://svn.fhem.de/fhem ;
             git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
-            git config --add svn-remote.svn.preserve-empty-dirs "true" ;
-            git config --add svn-remote.svn.placeholder-filename ".gitkeep" ;
-            git config --add svn.authorsfile "${GITHUB_WORKSPACE}/authors_merged.txt" ;
+            git config --replace-all svn-remote.svn.preserve-empty-dirs "true" ;
+            git config --replace-all svn-remote.svn.placeholder-filename ".gitkeep" ;
+            git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/authors_merged.txt" ;
             # Run extra fetches after init, go pick up some base refs for the cache on first run only!
             timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || true
           else
