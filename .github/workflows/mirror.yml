@@ -105,18 +105,20 @@ jobs:
           echo "A permanent error occured"
           exit 1
 
-      # - name: Recreate tags from svn
-      #   run: |
-      #     for tag in `git branch -r | grep "tags/" | sed 's/ tags\///'`; do
-      #       git tag -a -m"Converting SVN tags" $tag refs/remotes/$tag
-      #     done
-
-      # - name: Commit fetched files
-      #   run: |
-      #     cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
-      #     echo "Will now prepare push following directory structure to remote repo:";
-      #     ls -la ;
-      #     git config --add remote.origin.push 'refs/remotes/svn/trunk:refs/heads/master';
+      - name: Recreate tags from svn
+        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
+        working-directory: ./src/fhem-mirror
+        run: |
+           git for-each-ref --format="%(refname:lstrip=-1) %(objectname)" refs/remotes/origin/tags/FHEM_*_?  \
+           | while read BRANCH REF
+             do
+               TAG_NAME=${BRANCH#FHEM_}
+               TAG_NAME=$(echo $TAG_NAME | sed 's/_/./g')
+               BODY="$(git log -1 --format=format:%B $REF)"
+               echo "branch=$BRANCH ref=$REF parent=$(git rev-parse $REF^) tagname=$TAG_NAME body=$BODY" >&2
+               git tag -a -m "$BODY" $TAG_NAME $REF^  #&&\
+               git branch -r -d origin/tags/$BRANCH
+            done
 
       - name: Push force changes to master branch in same repo
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
