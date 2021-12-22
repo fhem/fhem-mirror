@@ -1,13 +1,11 @@
 name: Update cache from SVN
 
 on:
-  push:
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
-  schedule:
-  - cron: '59 */3 * * *' # every third hour to keep cache up to date
+  #schedule:
+  #- cron: '59 */3 * * *' # every third hour to keep cache up to date
 
 jobs:
   # This workflow contains a single job called "build"
