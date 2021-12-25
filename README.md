@@ -1,5 +1,5 @@
 # fhem-mirror
-READ-ONLY mirror of the [main Subversion repository trunk](http://svn.fhem.de/fhem/trunk), updated daily.
+READ-ONLY mirror of the [main Subversion repository](http://svn.fhem.de/fhem/trunk), updated multiple times every day.
 
 ## Branches
 1. The [`master`](https://github.com/fhem/fhem-mirror/tree/master) branch hosts the current source code from [FHEM SVN Trunk](http://svn.fhem.de/fhem/trunk).
