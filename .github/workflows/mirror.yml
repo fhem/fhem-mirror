@@ -128,4 +128,14 @@ jobs:
           branch: master
           directory: ./src/fhem-mirror
           force: true
+          tags: false
+
+      - name: Push tags in same repo
+        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
+        uses: ad-m/github-push-action@v0.6.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: master
+          directory: ./src/fhem-mirror
+          force: true
           tags: true
