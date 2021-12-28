@@ -1,9 +1,10 @@
 # fhem-mirror
-READ-ONLY mirror of the [main Subversion repository trunk](http://svn.fhem.de/fhem/trunk), updated daily.
+READ-ONLY mirror of the [main Subversion repository](http://svn.fhem.de/fhem/trunk), updated multiple times every day.
 
 ## Branches
 1. The [`master`](https://github.com/fhem/fhem-mirror/tree/master) branch hosts the current source code from [FHEM SVN Trunk](http://svn.fhem.de/fhem/trunk).
 2. The [`travis`](https://github.com/fhem/fhem-mirror/tree/travis) branch is controlling the mirroring process, running on [Github Actions](https://github.com/fhem/fhem-mirror/actions/workflows/mirror.yml).
+3. Under [`tags`](https://github.com/fhem/fhem-mirror/tags) FHEM Releases are mirrored also.
 
 ## Pull requests
 Pull requests to any other branch besides [`travis`](https://github.com/fhem/fhem-mirror/tree/travis) will be rejected.
