@@ -116,21 +116,11 @@ jobs:
                TAG_NAME=$(echo $TAG_NAME | sed 's/_/./g')
                BODY="$(git log -1 --format=format:%B $REF)"
                echo "branch=$BRANCH ref=$REF parent=$(git rev-parse $REF^) tagname=$TAG_NAME body=$BODY" >&2
-               git tag -a -m "$BODY" $TAG_NAME $REF^  
+               git tag -a -f -m "$BODY" $TAG_NAME $REF^  
                # git branch -r -d origin/tags/$BRANCH
             done
 
       - name: Push force changes to master branch in same repo
-        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: master
-          directory: ./src/fhem-mirror
-          force: true
-          tags: false
-
-      - name: Push tags in same repo
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
         uses: ad-m/github-push-action@v0.6.0
         with:
