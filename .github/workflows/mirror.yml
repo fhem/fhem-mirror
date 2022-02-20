@@ -16,8 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
 
-    env:
-      TRAVIS_REPO_SLUG: ${{ github.repository }} 
     steps:
 
       - name: install git-svn package
@@ -54,6 +52,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-fhemsvndir-
       
+      - name: clean cache
+        if: ${{ secrets.cleanCache == 'true' }}
+        run: |
+          rm -r ./src/fhem-mirror/.git
+
       #- name: 'Tar files'
       #  run: tar -cvf ${GITHUB_WORKSPACE}/svnMirror.tar ./src/fhem-mirror/
 
@@ -126,5 +129,5 @@ jobs:
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
           git fetch --unshallow || true
-          git push origin master --force -tags
+          git push origin master --force --tags
           
