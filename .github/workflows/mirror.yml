@@ -76,7 +76,7 @@ jobs:
             git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
             git config --replace-all svn-remote.svn.preserve-empty-dirs "true" ;
             git config --replace-all svn-remote.svn.placeholder-filename ".gitkeep" ;
-            git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/Autors/authors_merged.txt" ;
+            git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/autors/authors_merged.txt" ;
             # Run extra fetches after init, go pick up some base refs for the cache on first run only!
             timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || true
           else
