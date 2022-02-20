@@ -119,7 +119,10 @@ jobs:
                git tag -a -f -m "$BODY" $TAG_NAME $REF^  
                # git branch -r -d origin/tags/$BRANCH
             done
-
+      - name: unshallow
+        run: |
+          git fetch --unshallow || true
+          
       - name: Push force changes to master branch in same repo
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
         uses: ad-m/github-push-action@v0.6.0
