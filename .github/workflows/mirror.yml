@@ -53,7 +53,7 @@ jobs:
             ${{ runner.os }}-fhemsvndir-
       
       - name: clean cache
-        if: ${{ secrets.cleanCache == 'true' }}
+        if: ${{ secrets.CLEANCACHE == 'true' }}
         run: |
           rm -r ./src/fhem-mirror/.git
 
