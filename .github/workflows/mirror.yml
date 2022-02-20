@@ -16,8 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     continue-on-error: true
 
-    env:
-      TRAVIS_REPO_SLUG: ${{ github.repository }} 
     steps:
 
       - name: install git-svn package
@@ -54,6 +52,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-fhemsvndir-
       
+      - name: clean cache
+        env:
+          Clean_Cache: ${{ secrets.CLEANCACHE }}
+        if: "${{ env.Clean_Cache == 'true' }}"
+        run: |
+          rm -r ./src/fhem-mirror/.git
+
       #- name: 'Tar files'
       #  run: tar -cvf ${GITHUB_WORKSPACE}/svnMirror.tar ./src/fhem-mirror/
 
@@ -71,7 +76,7 @@ jobs:
             git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
             git config --replace-all svn-remote.svn.preserve-empty-dirs "true" ;
             git config --replace-all svn-remote.svn.placeholder-filename ".gitkeep" ;
-            git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/authors_merged.txt" ;
+            git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt" ;
             # Run extra fetches after init, go pick up some base refs for the cache on first run only!
             timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || true
           else
@@ -120,12 +125,11 @@ jobs:
                # git branch -r -d origin/tags/$BRANCH
             done
 
-      - name: Push force changes to master branch in same repo
+      - name: push tags and commits into master branch (force)
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
-        uses: ad-m/github-push-action@v0.6.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: master
-          directory: ./src/fhem-mirror
-          force: true
-          tags: true
+        working-directory: ./src/fhem-mirror
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/$GITHUB_REPOSITORY
+          git fetch --unshallow || true
+          git push origin master --force --tags
+          
