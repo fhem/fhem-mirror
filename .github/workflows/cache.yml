@@ -22,7 +22,7 @@ jobs:
           sudo apt-get install git-svn --no-install-recommends
 
       - name: checkout authors
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3
         with:
           ref: travis
           path: ./authors
@@ -49,7 +49,7 @@ jobs:
       #    rm ./src/fhem-mirror/.git/config 
           
       - name: checkout main branch
-        uses: actions/checkout@v2.4.0
+        uses: actions/checkout@v3
         with:
           path: ./src/fhem-mirror
           clean: false
