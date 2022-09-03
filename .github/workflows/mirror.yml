@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
   schedule:
-  - cron: '21 */2 * * *' # every second hour to keep cache up to date
+  - cron: '21 */1 * * *' # every hour to keep cache up to date
 
 jobs:
   # This workflow contains a single job called "build"
@@ -91,7 +91,7 @@ jobs:
           echo "::set-output name=SVN_FETCH_STATUS::incomplete"
           cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
           RET=0
-          timeout 1200 git svn -q fetch || timeout 120 git svn -q fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
+          timeout 1200 git svn -q --log-window-size=5000 fetch || timeout 120 git svn -q --log-window-size=5000 fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
           if [[ $RET == 0 ]]; then
             git branch -f master
             git checkout master
