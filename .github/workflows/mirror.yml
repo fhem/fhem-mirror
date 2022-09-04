@@ -44,6 +44,7 @@ jobs:
 
       - name: create tmpfs for svn repo
         run: |
+          mkdir -p ./src/fhem-mirror/
           sudo mount -t tmpfs -o size=3G tmpfs ./src/fhem-mirror/
 
       - name: Cache runners svn-2-git-fhem mirror directory  
