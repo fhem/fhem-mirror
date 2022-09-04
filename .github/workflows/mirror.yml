@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
   schedule:
-  - cron: '21 */1 * * *' # every hour to keep cache up to date
+  - cron: '10 */1 * * *' # every hour to keep cache up to date
 
 jobs:
   # This workflow contains a single job called "build"
@@ -78,7 +78,7 @@ jobs:
             git config --replace-all svn-remote.svn.placeholder-filename ".gitkeep" ;
             git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt" ;
             # Run extra fetches after init, go pick up some base refs for the cache on first run only!
-            timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || timeout 300 git svn -q fetch || true
+            timeout 900 git svn -q fetch || timeout 900 git svn -q fetch || timeout 900 git svn -q fetch || true
           else
             echo "Current .git/config file content:";
             cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
@@ -91,7 +91,7 @@ jobs:
           echo "::set-output name=SVN_FETCH_STATUS::incomplete"
           cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
           RET=0
-          timeout 1200 git svn -q --log-window-size=5000 fetch || timeout 120 git svn -q --log-window-size=5000 fetch || RET=$?;  # Limit each run to 20 minutes to not overload fhem.de servers and build cache in chunks
+          timeout 1800 git svn -q --log-window-size=5000 fetch || timeout 1800 git svn -q --log-window-size=5000 fetch || timeout 1200 git svn -q --log-window-size=600 fetch || RET=$?;  
           if [[ $RET == 0 ]]; then
             git branch -f master
             git checkout master
