@@ -91,7 +91,7 @@ jobs:
           echo "::set-output name=SVN_FETCH_STATUS::incomplete"
           cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
           RET=0
-          timeout 1800 git svn -q --log-window-size=5000 fetch || timeout 1800 git svn -q --log-window-size=5000 fetch || timeout 1200 git svn -q --log-window-size=600 fetch || RET=$?;  
+          timeout 1800 git svn -q --log-window-size=5000 fetch || timeout 1500 git svn -q --log-window-size=5000 fetch || RET=$?;  
           if [[ $RET == 0 ]]; then
             git branch -f master
             git checkout master
