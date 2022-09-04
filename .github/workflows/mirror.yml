@@ -93,7 +93,7 @@ jobs:
           RET=0
           timeout 1800 git svn -q --log-window-size=5000 fetch || timeout 1500 git svn -q --log-window-size=5000 fetch || RET=$?;  
           if [[ $RET == 0 ]]; then
-            git switch -c master
+            git switch master
             git config --global user.email "actions@gitbhub.com"
             git config --global user.name "Github Actions"
             git reset --hard "remotes/svn/trunk"
