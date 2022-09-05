@@ -61,7 +61,7 @@ jobs:
         run: |
           df -h ./src/fhem-mirror
 
-        - name: clean cache
+      - name: clean cache
         env:
           Clean_Cache: ${{ secrets.CLEANCACHE }}
         if: "${{ env.Clean_Cache == 'true' }}"
