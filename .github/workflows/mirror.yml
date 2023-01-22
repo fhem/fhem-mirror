@@ -30,7 +30,8 @@ jobs:
       - name: Get current date as seconds
         id: get-date
         run: |
-          echo "::set-output name=timestamp::$(/bin/date -u "+%Y%m%d%H" )"
+          echo "timestamp=$(/bin/date -u "+%Y%m%d%H" )" >> $GITHUB_OUTPUT
+
         shell: bash
 
       - name: generate merged authors file
@@ -97,7 +98,7 @@ jobs:
         id: fetchsvn
         timeout-minutes: 1800
         run: |
-          echo "::set-output name=SVN_FETCH_STATUS::incomplete"
+          echo "SVN_FETCH_STATUS=incomplete" >> $GITHUB_OUTPUT
           cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
           RET=0
           timeout 1800 git svn -q --log-window-size=5000 fetch || timeout 1500 git svn -q --log-window-size=5000 fetch || RET=$?;  
@@ -106,9 +107,9 @@ jobs:
             git config --global user.email "actions@gitbhub.com"
             git config --global user.name "Github Actions"
             git reset --hard "remotes/svn/trunk"
-            echo "::set-output name=SVN_FETCH_STATUS::complete"
+            echo "SVN_FETCH_STATUS=complete" >> $GITHUB_OUTPUT
           elif [[ $RET != 124 ]]; then
-            echo "::set-output name=SVN_FETCH_STATUS::error"
+            echo "SVN_FETCH_STATUS=error" >> $GITHUB_OUTPUT
           fi
 
       - name: Verify no fetch error state
