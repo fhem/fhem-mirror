@@ -22,7 +22,7 @@ jobs:
         run: |
           sudo apt-get remove git git-man
           sudo apt-get update
-          sudo apt-get install git-svn --no-install-recommends
+          sudo apt-get install subversion git-svn -y --no-install-recommends
 
       - name: checkout mirror config branch
         uses: actions/checkout@v4.2.2
