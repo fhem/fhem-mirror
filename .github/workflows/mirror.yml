@@ -133,6 +133,13 @@ jobs:
                # git branch -r -d origin/tags/$BRANCH
             done
 
+      - name: copy workflowfile
+        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
+        working-directory: ./src/fhem-mirror
+        run: |
+          cp -R .github ./src/fhem-mirror/ 
+          git commit -a --allow-empty-message ./src/fhem-mirror/*
+        
       - name: push tags and commits into master branch (force)
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
         working-directory: ./src/fhem-mirror
