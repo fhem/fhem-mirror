@@ -94,7 +94,7 @@ jobs:
             cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
           fi
 
-      - name: fetch svn to git master branch
+      - name: fetch svn to git main branch
         id: fetchsvn
         timeout-minutes: 1800
         run: |
@@ -103,7 +103,7 @@ jobs:
           RET=0
           timeout 1800 git svn -q --log-window-size=5000 fetch || timeout 1500 git svn -q --log-window-size=5000 fetch || RET=$?;  
           if [[ $RET == 0 ]]; then
-            git switch master
+            git switch main
             git config --global user.email "actions@gitbhub.com"
             git config --global user.name "Github Actions"
             git reset --hard "remotes/svn/trunk"
@@ -142,11 +142,11 @@ jobs:
           git add ${GITHUB_WORKSPACE}/src/fhem-mirror/.github/workflows/*
           git commit -m "add workflow"
 
-      - name: push tags and commits into master branch (force)
+      - name: push tags and commits into main branch (force)
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
         working-directory: ./src/fhem-mirror
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} || git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git fetch --unshallow || true
-          git push origin master --force --tags
+          git push origin main --force --tags
           
