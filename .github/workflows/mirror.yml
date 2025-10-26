@@ -139,8 +139,7 @@ jobs:
         run: |
           ls -RLa ${GITHUB_WORKSPACE}
           cp -R ${GITHUB_WORKSPACE}/.github ${GITHUB_WORKSPACE}/src/fhem-mirror/ 
-          git commit -a --allow-empty-message ./src/fhem-mirror/*
-        
+          #git commit -a --allow-empty-message ./src/fhem-mirror/
       - name: push tags and commits into master branch (force)
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
         working-directory: ./src/fhem-mirror
