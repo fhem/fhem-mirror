@@ -144,8 +144,8 @@ jobs:
           cp ${GITHUB_WORKSPACE}/README.md ${GITHUB_WORKSPACE}/src/fhem-mirror/
           cp ${GITHUB_WORKSPACE}/LICENSE ${GITHUB_WORKSPACE}/src/fhem-mirror/
           git add ${GITHUB_WORKSPACE}/src/fhem-mirror/.github/workflows/*
-          git add ${GITHUB_WORKSPACE}/README.md
-          git add ${GITHUB_WORKSPACE}/LICENSE
+          git add ${GITHUB_WORKSPACE}/src/fhem-mirror/README.md
+          git add ${GITHUB_WORKSPACE}/src/fhem-mirror/LICENSE
           git commit -m "add repo files"
 
       - name: push tags and commits into master branch (force)
