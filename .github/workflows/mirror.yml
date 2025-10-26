@@ -139,7 +139,9 @@ jobs:
         run: |
           ls -RLa ${GITHUB_WORKSPACE}
           cp -R ${GITHUB_WORKSPACE}/.github ${GITHUB_WORKSPACE}/src/fhem-mirror/ 
-          git commit -a -m "add workflow" ./src/fhem-mirror/.github/workflows/*
+          git add ./src/fhem-mirror/.github/workflows/*
+          git commit -m "add workflow"
+
       - name: push tags and commits into master branch (force)
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
         working-directory: ./src/fhem-mirror
