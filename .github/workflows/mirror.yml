@@ -1,0 +1,143 @@
+name: Mirror from SVN
+
+on:
+  push:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+  schedule:
+  - cron: '10 */10 * * *' # every hour to keep cache up to date
+
+jobs:
+  # This workflow contains a single job called "build"
+  mirror:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+    continue-on-error: true
+
+    steps:
+
+      - name: install git-svn package
+        run: |
+          sudo apt-get remove git git-man
+          sudo apt-get update
+          sudo apt-get install subversion git-svn -y --no-install-recommends
+
+      - name: checkout mirror config branch
+        uses: actions/checkout@v5.0.0
+
+      - name: Get current date as seconds
+        id: get-date
+        run: |
+          echo "timestamp=$(/bin/date -u "+%Y%m%d%H" )" >> $GITHUB_OUTPUT
+
+        shell: bash
+
+      - name: generate merged authors file
+        run: |
+          ls -RLa ${GITHUB_WORKSPACE}
+          cd /tmp
+          mkdir -p ${GITHUB_WORKSPACE}/authors
+          svn log https://svn.fhem.de/fhem --xml --quiet | grep author | sort -u | perl -pe 's/.*>(.*?)<.*/$1 = $1 <>/' > ${GITHUB_WORKSPACE}/authors_svn.txt;
+          cat ${GITHUB_WORKSPACE}/authors.txt ${GITHUB_WORKSPACE}/authors_svn.txt | sort -u -k1,1 > ${GITHUB_WORKSPACE}/authors/authors_merged.txt;
+          ls -la ${GITHUB_WORKSPACE}/authors/authors_merged.txt;         
+
+      - name: create tmpfs for svn repo
+        run: |
+          mkdir -p ./src/fhem-mirror
+          sudo mount -t tmpfs -o size=3G tmpfs ./src/fhem-mirror
+
+      - name: Cache runners svn-2-git-fhem mirror directory  
+        # Some room for improvement because we create a new cache on every run where a new ref is fetched, this isn't very nice, normaly weneed only the last one and it takes 7 days until they are deleted
+        id: cache-fhem
+        uses: actions/cache@v4.3.0
+        with:
+          path: ./src/fhem-mirror/.git
+          key: ${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}
+          restore-keys: |
+            ${{ runner.os }}-fhemsvndir-
+
+      - name: list filesystem
+        run: |
+          df -h ./src/fhem-mirror
+
+      - name: clean cache
+        env:
+          Clean_Cache: ${{ secrets.CLEANCACHE }}
+        if: "${{ env.Clean_Cache == 'true' }}"
+        run: |
+          rm -r ./src/fhem-mirror/.git
+
+      #- name: 'Tar files'
+      #  run: tar -cvf ${GITHUB_WORKSPACE}/svnMirror.tar ./src/fhem-mirror/
+
+      #- uses: actions/upload-artifact@v2
+      #  with:
+      #    name: mirror-artifact
+      #    path: ./svnMirror.tar
+
+      - name: init mirror repository if it is not already a mirror
+        timeout-minutes: 1800
+        run: |
+          if [[ ! -d "${GITHUB_WORKSPACE}/src/fhem-mirror/.git" ]]; then
+            git init "${GITHUB_WORKSPACE}/src/fhem-mirror" ;
+            cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
+            git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
+            git config --replace-all svn-remote.svn.preserve-empty-dirs "true" ;
+            git config --replace-all svn-remote.svn.placeholder-filename ".gitkeep" ;
+            git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt" ;
+            # Run extra fetches after init, go pick up some base refs for the cache on first run only!
+            timeout 900 git svn -q fetch || timeout 900 git svn -q fetch || timeout 900 git svn -q fetch || true
+          else
+            echo "Current .git/config file content:";
+            cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
+          fi
+
+      - name: fetch svn to git master branch
+        id: fetchsvn
+        timeout-minutes: 1800
+        run: |
+          echo "SVN_FETCH_STATUS=incomplete" >> $GITHUB_OUTPUT
+          cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
+          RET=0
+          timeout 1800 git svn -q --log-window-size=5000 fetch || timeout 1500 git svn -q --log-window-size=5000 fetch || RET=$?;  
+          if [[ $RET == 0 ]]; then
+            git switch master
+            git config --global user.email "actions@gitbhub.com"
+            git config --global user.name "Github Actions"
+            git reset --hard "remotes/svn/trunk"
+            echo "SVN_FETCH_STATUS=complete" >> $GITHUB_OUTPUT
+          elif [[ $RET != 124 ]]; then
+            echo "SVN_FETCH_STATUS=error" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Verify no fetch error state
+        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'error' }}
+        run: |
+          echo "A permanent error occured"
+          exit 1
+
+      - name: Recreate tags from svn
+        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
+        working-directory: ./src/fhem-mirror
+        run: |
+           git for-each-ref --format="%(refname:lstrip=-1) %(objectname)" refs/remotes/svn/tags/FHEM_*_?  \
+           | while read BRANCH REF
+             do
+               TAG_NAME=${BRANCH#FHEM_}
+               TAG_NAME=$(echo $TAG_NAME | sed 's/_/./g')
+               BODY="$(git log -1 --format=format:%B $REF)"
+               echo "branch=$BRANCH ref=$REF parent=$(git rev-parse $REF^) tagname=$TAG_NAME body=$BODY" >&2
+               git tag -a -f -m "$BODY" $TAG_NAME $REF^  
+               # git branch -r -d origin/tags/$BRANCH
+            done
+
+      - name: push tags and commits into master branch (force)
+        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
+        working-directory: ./src/fhem-mirror
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} || git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git fetch --unshallow || true
+          git push origin master --force --tags
+          
