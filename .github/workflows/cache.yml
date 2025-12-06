@@ -142,4 +142,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "Triggering retry $(( ${{ inputs.retry_count }} + 1 ))..."
-          gh workflow run cache.yml -f retry_count=$(( ${{ inputs.retry_count }} + 1 ))
+          gh workflow run cache.yml --ref ${{ github.ref_name }} -f retry_count=$(( ${{ inputs.retry_count }} + 1 ))
