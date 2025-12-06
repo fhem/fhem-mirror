@@ -108,6 +108,11 @@ jobs:
         timeout-minutes: 120
         working-directory: ./src/fhem-mirror
         run: |
+          FETCH_TIMEOUT=${{ inputs.fetch_timeout }}
+          if [[ "${{ github.ref }}" != "refs/heads/master" && "$FETCH_TIMEOUT" == "1201" ]]; then
+            FETCH_TIMEOUT=30
+          fi
+
           echo "::group::git svn init"
           git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
           git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt"
@@ -123,7 +128,7 @@ jobs:
           c=1
           while [ $RET -eq 124 ]; do
             echo "::group::Fetch ${c}/${{ inputs.max_attempts }}"
-            timeout ${{ inputs.fetch_timeout }} git svn --log-window-size=200 -q fetch && RET=$? || true
+            timeout $FETCH_TIMEOUT git svn --log-window-size=200 -q fetch && RET=$? || true
             if [ "$RET" -ne 0 ] && [ "$RET" -ne 124 ]; then
               echo "SVN_FETCH_STATUS=error" >> $GITHUB_OUTPUT
             fi
