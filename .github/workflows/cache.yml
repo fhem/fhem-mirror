@@ -8,6 +8,16 @@ on:
         required: false
         default: 0
         type: number
+      fetch_timeout:
+        description: "Timeout for SVN fetch command in seconds"
+        required: false
+        default: 1201
+        type: number
+      max_attempts:
+        description: "Max attempts for SVN fetch loop"
+        required: false
+        default: 3
+        type: number
     outputs:
       SVN_FETCH_STATUS:
         description: "Status of the SVN fetch operation"
@@ -20,12 +30,22 @@ on:
         required: false
         default: 0
         type: number
+      fetch_timeout:
+        description: "Timeout for SVN fetch command in seconds"
+        required: false
+        default: 1201
+        type: number
+      max_attempts:
+        description: "Max attempts for SVN fetch loop"
+        required: false
+        default: 3
+        type: number
 
   #schedule:
   #- cron: '59 */3 * * *' # every third hour to keep cache up to date
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}
   cancel-in-progress: false
 
 jobs:
@@ -102,12 +122,12 @@ jobs:
           RET=124
           c=1
           while [ $RET -eq 124 ]; do
-            echo "::group::Fetch ${c}/3"
-            timeout 1201 git svn --log-window-size=200 -q fetch && RET=$? || true
+            echo "::group::Fetch ${c}/${{ inputs.max_attempts }}"
+            timeout ${{ inputs.fetch_timeout }} git svn --log-window-size=200 -q fetch && RET=$? || true
             if [ "$RET" -ne 0 ] && [ "$RET" -ne 124 ]; then
               echo "SVN_FETCH_STATUS=error" >> $GITHUB_OUTPUT
-            fi 
-            ((c++)) && ((c==4)) && break
+            fi
+            ((c++)) && ((c > ${{ inputs.max_attempts }})) && break
             echo "::endgroup::"
           done
           if [ "$RET" -eq 0 ]; then          
@@ -119,10 +139,26 @@ jobs:
      # run: |
      #   cp -R ${GITHUB_WORKSPACE}/main/.github ./src/fhem-mirror
 
+      - name: Checkout repository for gh CLI
+        uses: actions/checkout@v5
+        with:
+          path: ref_branch
+
+      - name: Delete Previous Cache
+        working-directory: ./ref_branch
+        id: cache-fhem-delete
+        if: ${{ steps.cache-fhem-restore.outputs.cache-hit == 'true' }}
+        continue-on-error: true
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}" --confirm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Save cache runners svn-2-git-fhem mirror directory
         id: cache-fhem-save
         uses: actions/cache/save@v4.3.0
-        if: always() && steps.cache-fhem-restore.outputs.cache-hit != 'true'
+        if: always() 
         with:
           path: |
             ./src/fhem-mirror/.git
@@ -134,13 +170,8 @@ jobs:
           echo "A permanent error occured"
           exit 1
 
-      - name: Checkout repository for gh CLI
-        uses: actions/checkout@v5
-        with:
-          path: main_branch
-
       - name: Trigger workflow retry
-        working-directory: ./main_branch
+        working-directory: ./ref_branch
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'incomplete' && inputs.retry_count < 2 }}
         env:
           GH_TOKEN: ${{ github.token }}
