@@ -53,7 +53,6 @@ jobs:
   mirror:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    continue-on-error: true
     outputs:
       SVN_FETCH_STATUS: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS }}
 
@@ -105,6 +104,7 @@ jobs:
    
       - name: fetch from svn
         id: fetchsvn
+        continue-on-error: true
         timeout-minutes: 120
         working-directory: ./src/fhem-mirror
         run: |
@@ -170,14 +170,14 @@ jobs:
           key: ${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}
 
       - name: Verify no fetch error state
-        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'error' }}
+        if: always() && steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'error'
         run: |
           echo "A permanent error occured"
           exit 1
 
       - name: Trigger workflow retry
         working-directory: ./ref_branch
-        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'incomplete' && inputs.retry_count < 2 }}
+        if: always() && steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'incomplete' && inputs.retry_count < 2
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
