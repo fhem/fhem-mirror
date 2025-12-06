@@ -9,6 +9,10 @@ on:
   schedule:
   - cron: '10 */10 * * *' # every hour to keep cache up to date
 
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 jobs:
   update-svn-cache:
     uses: ./.github/workflows/cache.yml

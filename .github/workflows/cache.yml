@@ -8,6 +8,16 @@ on:
         required: false
         default: 0
         type: number
+      fetch_timeout:
+        description: "Timeout for SVN fetch command in seconds"
+        required: false
+        default: 1201
+        type: number
+      max_attempts:
+        description: "Max attempts for SVN fetch loop"
+        required: false
+        default: 3
+        type: number
     outputs:
       SVN_FETCH_STATUS:
         description: "Status of the SVN fetch operation"
@@ -20,16 +30,29 @@ on:
         required: false
         default: 0
         type: number
+      fetch_timeout:
+        description: "Timeout for SVN fetch command in seconds"
+        required: false
+        default: 1201
+        type: number
+      max_attempts:
+        description: "Max attempts for SVN fetch loop"
+        required: false
+        default: 3
+        type: number
 
   #schedule:
   #- cron: '59 */3 * * *' # every third hour to keep cache up to date
+
+concurrency:
+  group: update-svn-cache-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   # This workflow contains a single job called "build"
   mirror:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
-    continue-on-error: true
     outputs:
       SVN_FETCH_STATUS: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS }}
 
@@ -81,9 +104,15 @@ jobs:
    
       - name: fetch from svn
         id: fetchsvn
+        continue-on-error: true
         timeout-minutes: 120
         working-directory: ./src/fhem-mirror
         run: |
+          FETCH_TIMEOUT=${{ inputs.fetch_timeout }}
+          if [[ "${{ github.ref }}" != "refs/heads/master" && "$FETCH_TIMEOUT" == "1201" ]]; then
+            FETCH_TIMEOUT=30
+          fi
+
           echo "::group::git svn init"
           git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
           git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt"
@@ -98,12 +127,12 @@ jobs:
           RET=124
           c=1
           while [ $RET -eq 124 ]; do
-            echo "::group::Fetch ${c}/3"
-            timeout 1201 git svn --log-window-size=200 -q fetch && RET=$? || true
+            echo "::group::Fetch ${c}/${{ inputs.max_attempts }}"
+            timeout $FETCH_TIMEOUT git svn --log-window-size=200 -q fetch && RET=$? || true
             if [ "$RET" -ne 0 ] && [ "$RET" -ne 124 ]; then
               echo "SVN_FETCH_STATUS=error" >> $GITHUB_OUTPUT
-            fi 
-            ((c++)) && ((c==4)) && break
+            fi
+            ((c++)) && ((c > ${{ inputs.max_attempts }})) && break
             echo "::endgroup::"
           done
           if [ "$RET" -eq 0 ]; then          
@@ -115,31 +144,42 @@ jobs:
      # run: |
      #   cp -R ${GITHUB_WORKSPACE}/main/.github ./src/fhem-mirror
 
+      - name: Checkout repository for gh CLI
+        uses: actions/checkout@v5
+        with:
+          path: ref_branch
+
+      - name: Delete Previous Cache
+        working-directory: ./ref_branch
+        id: cache-fhem-delete
+        if: ${{ steps.cache-fhem-restore.outputs.cache-hit == 'true' && steps.fetchsvn.outputs.SVN_FETCH_STATUS != 'error' }}
+        continue-on-error: true
+        run: |
+          gh extension install actions/gh-actions-cache
+          gh actions-cache delete "${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}" --confirm
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Save cache runners svn-2-git-fhem mirror directory
         id: cache-fhem-save
         uses: actions/cache/save@v4.3.0
-        if: always() && steps.cache-fhem-restore.outputs.cache-hit != 'true'
+        if: always() 
         with:
           path: |
             ./src/fhem-mirror/.git
           key: ${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}
 
       - name: Verify no fetch error state
-        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'error' }}
+        if: always() && steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'error'
         run: |
           echo "A permanent error occured"
           exit 1
 
-      - name: Checkout repository for gh CLI
-        uses: actions/checkout@v5
-        with:
-          path: main_branch
-
       - name: Trigger workflow retry
-        working-directory: ./main_branch
-        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'incomplete' && inputs.retry_count < 2 }}
+        working-directory: ./ref_branch
+        if: always() && steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'incomplete' && inputs.retry_count < 2
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           echo "Triggering retry $(( ${{ inputs.retry_count }} + 1 ))..."
-          gh workflow run cache.yml --ref ${{ github.ref_name }} -f retry_count=$(( ${{ inputs.retry_count }} + 1 ))
+          gh workflow run cache.yml --ref ${{ github.ref_name }} -f retry_count=$(( ${{ inputs.retry_count }} + 1 )) -f fetch_timeout=${{ inputs.fetch_timeout }} -f max_attempts=${{ inputs.max_attempts }}
