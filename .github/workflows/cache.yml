@@ -24,6 +24,10 @@ on:
   #schedule:
   #- cron: '59 */3 * * *' # every third hour to keep cache up to date
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   # This workflow contains a single job called "build"
   mirror:
