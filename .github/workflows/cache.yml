@@ -1,8 +1,25 @@
 name: Update cache from SVN
 
 on:
+  workflow_call:
+    inputs:
+      retry_count:
+        description: "Retry count for SVN fetch"
+        required: false
+        default: 0
+        type: number
+    outputs:
+      SVN_FETCH_STATUS:
+        description: "Status of the SVN fetch operation"
+        value: ${{ jobs.mirror.outputs.SVN_FETCH_STATUS }}
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
+    inputs:
+      retry_count:
+        description: "Retry count for SVN fetch"
+        required: false
+        default: 0
+        type: number
 
   #schedule:
   #- cron: '59 */3 * * *' # every third hour to keep cache up to date
@@ -13,8 +30,15 @@ jobs:
     # The type of runner that the job will run on
     runs-on: ubuntu-latest
     continue-on-error: true
+    outputs:
+      SVN_FETCH_STATUS: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS }}
 
     steps:
+      - name: create tmpfs
+        run: |
+          sudo mkdir -p src/fhem-mirror
+          sudo mount -t tmpfs -o size=1g tmpfs src/fhem-mirror
+
       - name: install git-svn package
         run: |
           sudo apt-get remove git git-man
@@ -26,6 +50,13 @@ jobs:
         with:
           ref: travis
           path: ./authors
+
+      - name: generate merged authors file
+        run: |
+          cd /tmp
+          svn log https://svn.fhem.de/fhem --xml --quiet | grep author | sort -u | perl -pe 's/.*>(.*?)<.*/$1 = $1 <>/' > ${GITHUB_WORKSPACE}/authors/authors_svn.txt;
+          cat ${GITHUB_WORKSPACE}/authors/authors.txt ${GITHUB_WORKSPACE}/authors/authors_svn.txt | sort -u -k1,1 > ${GITHUB_WORKSPACE}/authors/authors_merged.txt;
+          ls -la ${GITHUB_WORKSPACE}/authors/authors_merged.txt;
 
       - name: Get current date 
         id: get-date
@@ -47,20 +78,7 @@ jobs:
       #- name: remove gitconfig
       #  run: |
       #    rm ./src/fhem-mirror/.git/config 
-          
-      - name: checkout main branch
-        uses: actions/checkout@v5.0.0
-        with:
-          path: ./src/fhem-mirror
-          clean: false
-
-      - name: generate merged authors file
-        run: |
-          cd /tmp
-          svn log https://svn.fhem.de/fhem --xml --quiet | grep author | sort -u | perl -pe 's/.*>(.*?)<.*/$1 = $1 <>/' > ${GITHUB_WORKSPACE}/authors/authors_svn.txt;
-          cat ${GITHUB_WORKSPACE}/authors/authors.txt ${GITHUB_WORKSPACE}/authors/authors_svn.txt | sort -u -k1,1 > ${GITHUB_WORKSPACE}/authors/authors_merged.txt;
-          ls -la ${GITHUB_WORKSPACE}/authors/authors_merged.txt;
-
+   
       - name: fetch from svn
         id: fetchsvn
         timeout-minutes: 120
@@ -81,7 +99,7 @@ jobs:
           c=1
           while [ $RET -eq 124 ]; do
             echo "::group::Fetch ${c}/5"
-            timeout 1200 git svn --log-window-size=200 -q fetch && RET=$? || true
+            timeout 60 git svn --log-window-size=200 -q fetch && RET=$? || true
             if [ "$RET" -ne 0 ] && [ "$RET" -ne 124 ]; then
               echo "::set-output name=SVN_FETCH_STATUS::error"
             fi 
@@ -102,3 +120,11 @@ jobs:
         run: |
           echo "A permanent error occured"
           exit 1
+
+      - name: Trigger workflow retry
+        if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'incomplete' && inputs.retry_count < 2 }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          echo "Triggering retry $(( ${{ inputs.retry_count }} + 1 ))..."
+          gh workflow run cache.yml -f retry_count=$(( ${{ inputs.retry_count }} + 1 ))
