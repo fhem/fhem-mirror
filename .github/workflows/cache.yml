@@ -132,8 +132,11 @@ jobs:
 
       - name: Checkout repository for gh CLI
         uses: actions/checkout@v5
+        with:
+          path: main_branch
 
       - name: Trigger workflow retry
+        working-directory: ./main_branch
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'incomplete' && inputs.retry_count < 2 }}
         env:
           GH_TOKEN: ${{ github.token }}
