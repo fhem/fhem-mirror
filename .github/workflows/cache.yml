@@ -152,7 +152,7 @@ jobs:
       - name: Delete Previous Cache
         working-directory: ./ref_branch
         id: cache-fhem-delete
-        if: ${{ steps.cache-fhem-restore.outputs.cache-hit == 'true' }}
+        if: ${{ steps.cache-fhem-restore.outputs.cache-hit == 'true' && steps.fetchsvn.outputs.SVN_FETCH_STATUS != 'error' }}
         continue-on-error: true
         run: |
           gh extension install actions/gh-actions-cache
