@@ -26,6 +26,8 @@ jobs:
 
       - name: checkout mirror config branch
         uses: actions/checkout@v5.0.0
+        with:
+          ref: travis
 
       - name: Get current date as seconds
         id: get-date
