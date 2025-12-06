@@ -45,7 +45,7 @@ on:
   #- cron: '59 */3 * * *' # every third hour to keep cache up to date
 
 concurrency:
-  group: ${{ github.workflow }}
+  group: update-svn-cache-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
