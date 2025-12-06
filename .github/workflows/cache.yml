@@ -121,6 +121,9 @@ jobs:
           echo "A permanent error occured"
           exit 1
 
+      - name: Checkout repository for gh CLI
+        uses: actions/checkout@v5
+
       - name: Trigger workflow retry
         if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'incomplete' && inputs.retry_count < 2 }}
         env:
