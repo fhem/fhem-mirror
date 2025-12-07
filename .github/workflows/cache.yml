@@ -59,8 +59,8 @@ jobs:
     steps:
       - name: create tmpfs
         run: |
-          sudo mkdir -p src/fhem-mirror
-          sudo mount -t tmpfs -o size=1g tmpfs src/fhem-mirror
+          mkdir -p ${GITHUB_WORKSPACE}/src/fhem-mirror
+          sudo mount -t tmpfs -o size=2G tmpfs ${GITHUB_WORKSPACE}/src/fhem-mirror
 
       - name: install git-svn and gh package
         run: |
@@ -101,50 +101,62 @@ jobs:
       #- name: remove gitconfig
       #  run: |
       #    rm ./src/fhem-mirror/.git/config 
-   
+      - name: init mirror repository if it is not already a mirror
+        timeout-minutes: 1800
+        run: |
+          if [[ ! -d "${GITHUB_WORKSPACE}/src/fhem-mirror/.git" ]]; then
+            git init "${GITHUB_WORKSPACE}/src/fhem-mirror" ;
+            cd "${GITHUB_WORKSPACE}/src/fhem-mirror";
+            git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
+            git config --replace-all svn-remote.svn.preserve-empty-dirs "true" ;
+            git config --replace-all svn-remote.svn.placeholder-filename ".gitkeep" ;
+            git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt" ;
+            # Run extra fetches after init, go pick up some base refs for the cache on first run only!
+            timeout 900 git svn -q fetch || timeout 900 git svn -q fetch || timeout 900 git svn -q fetch || true
+          else
+            echo "Current .git/config file content:";
+            cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
+          fi
+
       - name: fetch from svn
         id: fetchsvn
         continue-on-error: true
         timeout-minutes: 120
         working-directory: ./src/fhem-mirror
         run: |
+          echo "::group::prepare"  
           FETCH_TIMEOUT=${{ inputs.fetch_timeout }}
           if [[ "${{ github.ref }}" != "refs/heads/master" && "$FETCH_TIMEOUT" == "1201" ]]; then
             FETCH_TIMEOUT=30
           fi
-
-          echo "::group::git svn init"
-          git svn init --trunk=trunk --tags=tags --prefix=svn/ https://svn.fhem.de/fhem;
-          git config --replace-all svn.authorsfile "${GITHUB_WORKSPACE}/authors/authors_merged.txt"
-          git config --replace-all svn-remote.svn.preserve-empty-dirs "true" ;
-          git config --replace-all svn-remote.svn.placeholder-filename ".gitkeep" ;
-          echo "Current .git/config file content:";
-          cat ${GITHUB_WORKSPACE}/src/fhem-mirror/.git/config;
-          echo "::endgroup::"
-          
           echo "SVN_FETCH_STATUS=incomplete" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
+
           # Run fetches after init, go pick up some base refs for the cache on first run only!
           RET=124
           c=1
           while [ $RET -eq 124 ]; do
             echo "::group::Fetch ${c}/${{ inputs.max_attempts }}"
-            timeout $FETCH_TIMEOUT git svn --log-window-size=200 -q fetch && RET=$? || true
+            timeout $FETCH_TIMEOUT git svn --log-window-size=5000 -q fetch && RET=0 || RET=$?
             if [ "$RET" -ne 0 ] && [ "$RET" -ne 124 ]; then
               echo "SVN_FETCH_STATUS=error" >> $GITHUB_OUTPUT
             fi
-            ((c++)) && ((c > ${{ inputs.max_attempts }})) && break
             echo "::endgroup::"
+            ((c++)) && ((c > ${{ inputs.max_attempts }})) && break
           done
-          if [ "$RET" -eq 0 ]; then          
+          if [ "$RET" -eq 0 ]; then       
+            echo "::group::checkout"  
+            git switch main
+            git config --global user.email "actions@gitbhub.com"
+            git config --global user.name "Github Actions"
+            git reset --hard "remotes/svn/trunk"
+
             echo "SVN_FETCH_STATUS=complete" >> $GITHUB_OUTPUT
+            echo "::endgroup::"
           fi
 
-     # - name: Copy Workflow Files to target
-     #   if: ${{ steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'complete' }}
-     # run: |
-     #   cp -R ${GITHUB_WORKSPACE}/main/.github ./src/fhem-mirror
-
       - name: Checkout repository for gh CLI
+        if: always()
         uses: actions/checkout@v5
         with:
           path: ref_branch
@@ -175,7 +187,7 @@ jobs:
           echo "A permanent error occured"
           exit 1
 
-      - name: Trigger workflow retry
+      - name: Trigger next workflow retry if incomplete
         working-directory: ./ref_branch
         if: always() && steps.fetchsvn.outputs.SVN_FETCH_STATUS == 'incomplete' && inputs.retry_count < 2
         env:
