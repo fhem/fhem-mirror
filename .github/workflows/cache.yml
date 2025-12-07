@@ -124,14 +124,16 @@ jobs:
         timeout-minutes: 120
         working-directory: ./src/fhem-mirror
         run: |
+          echo "::group::prepare"  
           FETCH_TIMEOUT=${{ inputs.fetch_timeout }}
           if [[ "${{ github.ref }}" != "refs/heads/master" && "$FETCH_TIMEOUT" == "1201" ]]; then
             FETCH_TIMEOUT=30
           fi
-          
           echo "SVN_FETCH_STATUS=incomplete" >> $GITHUB_OUTPUT
+          echo "::endgroup::"
+
           # Run fetches after init, go pick up some base refs for the cache on first run only!
-          RET=124   #  incompete
+          RET=124
           c=1
           while [ $RET -eq 124 ]; do
             echo "::group::Fetch ${c}/${{ inputs.max_attempts }}"
@@ -143,15 +145,18 @@ jobs:
             ((c++)) && ((c > ${{ inputs.max_attempts }})) && break
           done
           if [ "$RET" -eq 0 ]; then       
+            echo "::group::checkout"  
             git switch main
             git config --global user.email "actions@gitbhub.com"
             git config --global user.name "Github Actions"
             git reset --hard "remotes/svn/trunk"
 
             echo "SVN_FETCH_STATUS=complete" >> $GITHUB_OUTPUT
+            echo "::endgroup::"
           fi
 
       - name: Checkout repository for gh CLI
+        if: always()
         uses: actions/checkout@v5
         with:
           path: ref_branch
