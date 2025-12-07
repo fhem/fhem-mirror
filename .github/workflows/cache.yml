@@ -135,13 +135,12 @@ jobs:
           c=1
           while [ $RET -eq 124 ]; do
             echo "::group::Fetch ${c}/${{ inputs.max_attempts }}"
-            timeout $FETCH_TIMEOUT git svn --log-window-size=5000 -q fetch
-            RET=$?
+            timeout $FETCH_TIMEOUT git svn --log-window-size=5000 -q fetch && RET=0 || RET=$?
             if [ "$RET" -ne 0 ] && [ "$RET" -ne 124 ]; then
               echo "SVN_FETCH_STATUS=error" >> $GITHUB_OUTPUT
             fi
-            ((c++)) && ((c > ${{ inputs.max_attempts }})) && break
             echo "::endgroup::"
+            ((c++)) && ((c > ${{ inputs.max_attempts }})) && break
           done
           if [ "$RET" -eq 0 ]; then       
             git switch main
