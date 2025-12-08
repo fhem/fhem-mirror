@@ -103,7 +103,7 @@ jobs:
       - name: Recreate tags from svn
         working-directory: ./src/fhem-mirror
         run: |
-          git for-each-ref --format="%(refname:lstrip=-1) %(objectname)" refs/remotes/svn/tags/FHEM_*_?  \
+          git for-each-ref --format="%(refname:lstrip=-1) %(objectname)" refs/remotes/svn/tags/FHEM_*[._]?  \
           | while read BRANCH REF
             do
               TAG_NAME=${BRANCH#FHEM_}
