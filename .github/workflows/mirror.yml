@@ -95,10 +95,10 @@ jobs:
           SVN_COMMIT_SHA=$(git rev-parse remotes/svn/trunk)
           SVN_COMMIT_MSG=$(git log -1 --format=%B remotes/svn/trunk)
 
-          # 1. Reset 'main' softly to the SVN base to keep all changes in the index/working directory
-          # The current HEAD is the SVN mirror commit (from line 68)
-          # This command removes the SVN commit from the history, keeping its contents in the index/working directory.
-          git reset --soft remotes/svn/trunk
+          # 1. Reset 'main' to the SVN parent to treat the latest SVN changes as uncommitted work
+          # The current HEAD is the SVN mirror commit.
+          # We go back one commit (mixed reset), so the SVN changes become unstaged modifications.
+          git reset HEAD^
           
           # 2. Stage only the complementary files and commit them (first commit)
           git add .github/
@@ -106,9 +106,9 @@ jobs:
           git add LICENSE || true
           git commit -m "Complementary files: add complementary repo files (workflows, README.md, LICENSE)"
 
-          # 3. Commit the remaining SVN content (second commit)
-          # The remaining files in the index are the SVN changes
-          printf "MIRROR: update from SVN trunk - derived from $SVN_COMMIT_SHA\n\n${SVN_COMMIT_MSG}" | git commit -F -
+          # 3. Stage the rest (the SVN changes) and commit them (second commit)
+          git add .
+          printf "MIRROR: update from SVN trunk - derived from $SVN_COMMIT_SHA\n\n${SVN_COMMIT_MSG}" | git commit --allow-empty -F -
 
       - name: Recreate tags from svn
         working-directory: ./src/fhem-mirror
