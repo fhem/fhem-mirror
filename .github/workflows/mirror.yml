@@ -67,6 +67,10 @@ jobs:
              echo "Error: .git directory not found after cache restore."
              exit 1
            fi
+
+      - name: checkout mirror config branch
+        uses: actions/checkout@v5.0.0
+
       - name: copy workflowfile and commit
         if: needs.update-svn-cache.outputs.SVN_FETCH_STATUS == 'complete'
         working-directory: ./src/fhem-mirror
