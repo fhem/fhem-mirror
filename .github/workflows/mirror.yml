@@ -67,37 +67,43 @@ jobs:
              echo "Error: .git directory not found after cache restore."
              exit 1
            fi
+      - name: copy workflowfile and commit
+        if: needs.update-svn-cache.outputs.SVN_FETCH_STATUS == 'complete'
+        working-directory: ./src/fhem-mirror
+        run: |
+          # Copy .github/ and other files from the main repo to the mirror repo.
+          cp -R ${GITHUB_WORKSPACE}/.github ${GITHUB_WORKSPACE}/src/fhem-mirror/
+          cp ${GITHUB_WORKSPACE}/README.md ${GITHUB_WORKSPACE}/src/fhem-mirror/ || true
+          cp ${GITHUB_WORKSPACE}/LICENSE ${GITHUB_WORKSPACE}/src/fhem-mirror/ || true
+
+          # Remove files that are not part of SVN and were in the old main branch.
+          # This cleans up the files that are not in SVN/main but were previously in main, e.g. a deleted workflow file.
+          git clean -fxd
+
+          # Stage copied files (like .github/*, README.md, and LICENSE)
+          git add .github/
+          git add README.md || true
+          git add LICENSE || true
+          
+          # Commit all changes to the mirror
+          git commit -m "add complementary repo files (workflows, README.md, LICENSE)"
 
       - name: Recreate tags from svn
         working-directory: ./src/fhem-mirror
         run: |
-           git for-each-ref --format="%(refname:lstrip=-1) %(objectname)" refs/remotes/svn/tags/FHEM_*_?  \
-           | while read BRANCH REF
-             do
-               TAG_NAME=${BRANCH#FHEM_}
-               TAG_NAME=$(echo $TAG_NAME | sed 's/_/./g')
-               BODY="$(git log -1 --format=format:%B $REF)"
-               echo "branch=$BRANCH ref=$REF parent=$(git rev-parse $REF^) tagname=$TAG_NAME body=$BODY" >&2
-               git tag -a -f -m "$BODY" $TAG_NAME $REF^  
-               # git branch -r -d origin/tags/$BRANCH
+          git for-each-ref --format="%(refname:lstrip=-1) %(objectname)" refs/remotes/svn/tags/FHEM_*_?  \
+          | while read BRANCH REF
+            do
+              TAG_NAME=${BRANCH#FHEM_}
+              TAG_NAME=$(echo $TAG_NAME | sed 's/_/./g')
+              BODY="$(git log -1 --format=format:%B $REF)"
+              echo "branch=$BRANCH ref=$REF parent=$(git rev-parse $REF^) tagname=$TAG_NAME body=$BODY" >&2
+              git tag -a -f -m "$BODY" $TAG_NAME $REF^
+              # git branch -r -d origin/tags/$BRANCH
             done
 
       #- name: push tags and commits into master branch (force)
       #    path: ./svnMirror.tar
-
-      - name: Recreate tags from svn
-        working-directory: ./src/fhem-mirror
-        run: |
-           git for-each-ref --format="%(refname:lstrip=-1) %(objectname)" refs/remotes/svn/tags/FHEM_*_?  \
-           | while read BRANCH REF
-             do
-               TAG_NAME=${BRANCH#FHEM_}
-               TAG_NAME=$(echo $TAG_NAME | sed 's/_/./g')
-               BODY="$(git log -1 --format=format:%B $REF)"
-               echo "branch=$BRANCH ref=$REF parent=$(git rev-parse $REF^) tagname=$TAG_NAME body=$BODY" >&2
-               git tag -a -f -m "$BODY" $TAG_NAME $REF^  
-               # git branch -r -d origin/tags/$BRANCH
-            done
 
       - name: push tags and commits into main branch (force)
         working-directory: ./src/fhem-mirror
