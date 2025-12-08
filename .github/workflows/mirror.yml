@@ -58,7 +58,10 @@ jobs:
            git config --global user.name "Github Actions"
            git config --global --add safe.directory "*"
            if [ -d ".git" ]; then
-             git checkout master || git checkout -b master
+             if ! git show-ref --verify --quiet refs/heads/main; then
+               git branch main remotes/svn/trunk
+             fi
+             git switch main
              git reset --hard remotes/svn/trunk
            else
              echo "Error: .git directory not found after cache restore."
@@ -96,10 +99,9 @@ jobs:
                # git branch -r -d origin/tags/$BRANCH
             done
 
-      - name: push tags and commits into master branch (force)
+      - name: push tags and commits into main branch (force)
         working-directory: ./src/fhem-mirror
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} || git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git fetch --unshallow || true
           git push origin main --force --tags
-          
