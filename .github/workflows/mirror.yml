@@ -87,18 +87,28 @@ jobs:
           cp ${GITHUB_WORKSPACE}/README.md ${GITHUB_WORKSPACE}/src/fhem-mirror/ || true
           cp ${GITHUB_WORKSPACE}/LICENSE ${GITHUB_WORKSPACE}/src/fhem-mirror/ || true
 
-      - name: commit complementary files
+      - name: Reorder commits (Complementary first, then SVN Mirror)
         if: needs.update-svn-cache.outputs.SVN_FETCH_STATUS == 'complete'
         working-directory: ./src/fhem-mirror
         run: |
+          # Store the SVN mirror commit SHA for the commit message
+          SVN_COMMIT_SHA=$(git rev-parse remotes/svn/trunk)
+          SVN_COMMIT_MSG=$(git log -1 --format=%B remotes/svn/trunk)
 
-          # Stage copied files (like .github/*, README.md, and LICENSE)
+          # 1. Reset 'main' softly to the SVN base to keep all changes in the index/working directory
+          # The current HEAD is the SVN mirror commit (from line 68)
+          # This command removes the SVN commit from the history, keeping its contents in the index/working directory.
+          git reset --soft remotes/svn/trunk
+          
+          # 2. Stage only the complementary files and commit them (first commit)
           git add .github/
           git add README.md || true
           git add LICENSE || true
-          
-          # Commit all changes to the mirror
-          git commit -m "add complementary repo files (workflows, README.md, LICENSE)"
+          git commit -m "Complementary files: add complementary repo files (workflows, README.md, LICENSE)"
+
+          # 3. Commit the remaining SVN content (second commit)
+          # The remaining files in the index are the SVN changes
+          printf "MIRROR: update from SVN trunk - derived from $SVN_COMMIT_SHA\n\n${SVN_COMMIT_MSG}" | git commit -F -
 
       - name: Recreate tags from svn
         working-directory: ./src/fhem-mirror
@@ -122,4 +132,4 @@ jobs:
         run: |
           git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} || git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git fetch --unshallow || true
-          git push origin main --force --tags
+          git push origin main --force-with-lease --tags
