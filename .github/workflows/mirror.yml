@@ -71,18 +71,26 @@ jobs:
              exit 1
            fi
 
-      - name: copy workflowfile and commit
+      - name: clean complementary files
         if: needs.update-svn-cache.outputs.SVN_FETCH_STATUS == 'complete'
         working-directory: ./src/fhem-mirror
+        run: |
+          # Remove files that are not part of SVN and were in the old main branch.
+          # This cleans up the files that are not in SVN/main but were previously in main, e.g. a deleted workflow file.
+          git clean -fxd
+
+      - name: copy complementary files
+        if: needs.update-svn-cache.outputs.SVN_FETCH_STATUS == 'complete'
         run: |
           # Copy .github/ and other files from the main repo to the mirror repo.
           cp -R ${GITHUB_WORKSPACE}/.github ${GITHUB_WORKSPACE}/src/fhem-mirror/
           cp ${GITHUB_WORKSPACE}/README.md ${GITHUB_WORKSPACE}/src/fhem-mirror/ || true
           cp ${GITHUB_WORKSPACE}/LICENSE ${GITHUB_WORKSPACE}/src/fhem-mirror/ || true
 
-          # Remove files that are not part of SVN and were in the old main branch.
-          # This cleans up the files that are not in SVN/main but were previously in main, e.g. a deleted workflow file.
-          git clean -fxd
+      - name: commit complementary files
+        if: needs.update-svn-cache.outputs.SVN_FETCH_STATUS == 'complete'
+        working-directory: ./src/fhem-mirror
+        run: |
 
           # Stage copied files (like .github/*, README.md, and LICENSE)
           git add .github/
