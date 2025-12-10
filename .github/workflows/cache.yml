@@ -124,9 +124,9 @@ jobs:
         timeout-minutes: 120
         working-directory: ./src/fhem-mirror
         run: |
-          echo "::group::prepare"  
+          echo "::group::prepare"
           FETCH_TIMEOUT=${{ inputs.fetch_timeout }}
-          if [[ "${{ github.ref }}" != "refs/heads/master" && "$FETCH_TIMEOUT" == "1201" ]]; then
+          if [[ "${{ github.ref }}" != "refs/heads/main" && "$FETCH_TIMEOUT" == "1201" ]]; then
             FETCH_TIMEOUT=30
           fi
           echo "SVN_FETCH_STATUS=incomplete" >> $GITHUB_OUTPUT
@@ -140,21 +140,17 @@ jobs:
             timeout $FETCH_TIMEOUT git svn --log-window-size=5000 -q fetch && RET=0 || RET=$?
             if [ "$RET" -ne 0 ] && [ "$RET" -ne 124 ]; then
               echo "SVN_FETCH_STATUS=error" >> $GITHUB_OUTPUT
+              break
             fi
             echo "::endgroup::"
             ((c++)) && ((c > ${{ inputs.max_attempts }})) && break
           done
+          echo "::group::finish"
           if [ "$RET" -eq 0 ]; then       
-            echo "::group::checkout"  
-            git switch main
-            git config --global user.email "actions@gitbhub.com"
-            git config --global user.name "Github Actions"
-            git reset --hard "remotes/svn/trunk"
-
-            echo "SVN_FETCH_STATUS=complete" >> $GITHUB_OUTPUT
-            echo "::endgroup::"
+            git gc && echo "SVN_FETCH_STATUS=complete" >> $GITHUB_OUTPUT || echo "SVN_FETCH_STATUS=error" >> $GITHUB_OUTPUT
           fi
-
+          echo "::endgroup::"
+       
       - name: Checkout repository for gh CLI
         if: always()
         uses: actions/checkout@v5
