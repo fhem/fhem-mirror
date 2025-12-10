@@ -87,28 +87,14 @@ jobs:
           cp ${GITHUB_WORKSPACE}/README.md ${GITHUB_WORKSPACE}/src/fhem-mirror/ || true
           cp ${GITHUB_WORKSPACE}/LICENSE ${GITHUB_WORKSPACE}/src/fhem-mirror/ || true
 
-      - name: Reorder commits (Complementary first, then SVN Mirror)
+      - name: commit complementary files
         if: needs.update-svn-cache.outputs.SVN_FETCH_STATUS == 'complete'
         working-directory: ./src/fhem-mirror
         run: |
-          # Store the SVN mirror commit SHA for the commit message
-          SVN_COMMIT_SHA=$(git rev-parse remotes/svn/trunk)
-          SVN_COMMIT_MSG=$(git log -1 --format=%B remotes/svn/trunk)
-
-          # 1. Reset 'main' to the SVN parent to treat the latest SVN changes as uncommitted work
-          # The current HEAD is the SVN mirror commit.
-          # We go back one commit (mixed reset), so the SVN changes become unstaged modifications.
-          git reset HEAD^
-          
-          # 2. Stage only the complementary files and commit them (first commit)
           git add .github/
           git add README.md || true
           git add LICENSE || true
           git commit -m "Complementary files: add complementary repo files (workflows, README.md, LICENSE)"
-
-          # 3. Stage the rest (the SVN changes) and commit them (second commit)
-          git add .
-          printf "MIRROR: update from SVN trunk - derived from $SVN_COMMIT_SHA\n\n${SVN_COMMIT_MSG}" | git commit --allow-empty -F -
 
       - name: Recreate tags from svn
         working-directory: ./src/fhem-mirror
