@@ -1,0 +1,121 @@
+name: Mirror from SVN
+
+on:
+  push:
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+  schedule:
+  - cron: '10 */10 * * *' # every hour to keep cache up to date
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  update-svn-cache:
+    uses: ./.github/workflows/cache.yml
+    secrets: inherit
+
+  publish-mirror:
+    needs: update-svn-cache
+    runs-on: ubuntu-latest
+    continue-on-error: false
+    if: needs.update-svn-cache.outputs.SVN_FETCH_STATUS == 'complete'
+
+    steps:
+
+      - name: install git-svn package
+        run: |
+          sudo apt-get remove git git-man
+          sudo apt-get update
+          sudo apt-get install subversion git-svn -y --no-install-recommends
+
+      - name: Get current date as seconds
+        id: get-date
+        run: |
+          echo "timestamp=$(/bin/date -u "+%Y%m%d%H" )" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: checkout mirror config branch
+        uses: actions/checkout@v5.0.0
+
+      - name: create tmpfs for svn repo
+        run: |
+          mkdir -p ./src/fhem-mirror
+          sudo mount -t tmpfs -o size=3G tmpfs ./src/fhem-mirror
+
+      - name: Restore cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ./src/fhem-mirror/.git
+          key: ${{ runner.os }}-fhemsvndir-${{ steps.get-date.outputs.timestamp }}
+          restore-keys: |
+            ${{ runner.os }}-fhemsvndir-
+
+      - name: Reset git pointer
+        working-directory: ./src/fhem-mirror
+        run: |
+           git config --global user.email "actions@gitbhub.com"
+           git config --global user.name "Github Actions"
+           git config --global --add safe.directory "*"
+           if [ -d ".git" ]; then
+             if ! git show-ref --verify --quiet refs/heads/main; then
+               git branch main remotes/svn/trunk
+             fi
+             git switch main
+             git reset --hard remotes/svn/trunk
+           else
+             echo "Error: .git directory not found after cache restore."
+             exit 1
+           fi
+
+      - name: clean complementary files
+        if: needs.update-svn-cache.outputs.SVN_FETCH_STATUS == 'complete'
+        working-directory: ./src/fhem-mirror
+        run: |
+          # Remove files that are not part of SVN and were in the old main branch.
+          # This cleans up the files that are not in SVN/main but were previously in main, e.g. a deleted workflow file.
+          git clean -fxd
+
+      - name: copy complementary files
+        if: needs.update-svn-cache.outputs.SVN_FETCH_STATUS == 'complete'
+        run: |
+          # Copy .github/ and other files from the main repo to the mirror repo.
+          cp -R ${GITHUB_WORKSPACE}/.github ${GITHUB_WORKSPACE}/src/fhem-mirror/
+          cp ${GITHUB_WORKSPACE}/README.md ${GITHUB_WORKSPACE}/src/fhem-mirror/ || true
+          cp ${GITHUB_WORKSPACE}/LICENSE ${GITHUB_WORKSPACE}/src/fhem-mirror/ || true
+
+      - name: commit complementary files
+        if: needs.update-svn-cache.outputs.SVN_FETCH_STATUS == 'complete'
+        working-directory: ./src/fhem-mirror
+        run: |
+          git add .github/
+          git add README.md || true
+          git add LICENSE || true
+          git commit -m "Complementary files: add complementary repo files (workflows, README.md, LICENSE)"
+
+      - name: Recreate tags from svn
+        working-directory: ./src/fhem-mirror
+        run: |
+          git for-each-ref --format="%(refname:lstrip=-1) %(objectname)" refs/remotes/svn/tags/FHEM_*[._]?  \
+          | while read BRANCH REF
+            do
+              TAG_NAME=${BRANCH#FHEM_}
+              TAG_NAME=$(echo $TAG_NAME | sed 's/_/./g')
+              BODY="$(git log -1 --format=format:%B $REF)"
+              echo "branch=$BRANCH ref=$REF parent=$(git rev-parse $REF^) tagname=$TAG_NAME body=$BODY" >&2
+              git tag -a -f -m "$BODY" $TAG_NAME $REF^
+              # git branch -r -d origin/tags/$BRANCH
+            done
+
+      #- name: push tags and commits into master branch (force)
+      #    path: ./svnMirror.tar
+
+      - name: push tags and commits into main branch (force)
+        working-directory: ./src/fhem-mirror
+        run: |
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} || git remote add origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
+          git fetch --unshallow || true
+          git push origin main --force --tags
